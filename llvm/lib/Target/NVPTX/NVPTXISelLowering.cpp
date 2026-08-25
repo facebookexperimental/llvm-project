@@ -262,7 +262,6 @@ getVectorLoweringShape(EVT VectorEVT, const NVPTXSubtarget &STI,
     break;
 
   case MVT::v8f32: // <4 x f32x2>
-  case MVT::v8i32: // <4 x i32x2>
     // This is a "native" vector type iff the address space is global and the
     // target supports 256-bit loads/stores
     if (!CanLowerTo256Bit)
@@ -270,9 +269,20 @@ getVectorLoweringShape(EVT VectorEVT, const NVPTXSubtarget &STI,
     [[fallthrough]];
   case MVT::v2f32: // <1 x f32x2>
   case MVT::v4f32: // <2 x f32x2>
+    if (!STI.hasF32x2Instructions())
+      return std::pair(NumElts, EltVT);
+    PackRegSize = 64;
+    break;
+
+  case MVT::v8i32: // <4 x i32x2>
+    // This is a "native" vector type iff the address space is global and the
+    // target supports 256-bit loads/stores
+    if (!CanLowerTo256Bit)
+      return std::nullopt;
+    [[fallthrough]];
   case MVT::v2i32: // <1 x i32x2>
   case MVT::v4i32: // <2 x i32x2>
-    if (!STI.hasF32x2Instructions())
+    if (!STI.hasV2I32Registers())
       return std::pair(NumElts, EltVT);
     PackRegSize = 64;
     break;
@@ -595,6 +605,8 @@ NVPTXTargetLowering::NVPTXTargetLowering(const NVPTXTargetMachine &TM,
 
   if (STI.hasF32x2Instructions()) {
     addRegisterClass(MVT::v2f32, &NVPTX::B64RegClass);
+  }
+  if (STI.hasV2I32Registers()) {
     addRegisterClass(MVT::v2i32, &NVPTX::B64RegClass);
   }
 
@@ -643,8 +655,9 @@ NVPTXTargetLowering::NVPTXTargetLowering(const NVPTXTargetMachine &TM,
 
   // Need custom lowering in case the index is dynamic.
   if (STI.hasF32x2Instructions())
-    setOperationAction(ISD::EXTRACT_VECTOR_ELT, {MVT::v2f32, MVT::v2i32},
-                       Custom);
+    setOperationAction(ISD::EXTRACT_VECTOR_ELT, MVT::v2f32, Custom);
+  if (STI.hasV2I32Registers())
+    setOperationAction(ISD::EXTRACT_VECTOR_ELT, MVT::v2i32, Custom);
 
   // Custom conversions to/from v2i8.
   setOperationAction(ISD::BITCAST, MVT::v2i8, Custom);

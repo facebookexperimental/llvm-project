@@ -194,6 +194,7 @@ public:
 
   // f32x2 instructions in Blackwell family
   bool hasF32x2Instructions() const;
+  bool hasV2I32Registers() const;
 
   // Checks support for following in TMA:
   //  - cta_group::1/2 support
