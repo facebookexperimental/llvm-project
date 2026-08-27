@@ -4903,7 +4903,8 @@ multiclass PTX_READ_SREG_R32V4<string regname, list<Predicate> Preds=[]> {
 
 defm INT_PTX_SREG_TID   : PTX_READ_SREG_R32V4<"tid">;
 defm INT_PTX_SREG_NTID  : PTX_READ_SREG_R32V4<"ntid">;
-defm INT_PTX_SREG_CTAID : PTX_READ_SREG_R32V4<"ctaid">;
+let isAsCheapAsAMove = true in
+  defm INT_PTX_SREG_CTAID : PTX_READ_SREG_R32V4<"ctaid">;
 defm INT_PTX_SREG_NCTAID: PTX_READ_SREG_R32V4<"nctaid">;
 
 defm INT_PTX_SREG_CLUSTERID :
