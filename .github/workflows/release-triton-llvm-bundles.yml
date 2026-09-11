@@ -1,0 +1,260 @@
+name: Release Triton LLVM bundles
+
+on:
+  workflow_dispatch:
+    inputs:
+      llvm_ref:
+        description: LLVM commit or ref to package
+        required: true
+        type: string
+      build_number:
+        description: Monotonically increasing build number for this LLVM commit
+        required: true
+        default: "1"
+        type: string
+  # scheduled-triton-llvm-bundles.yml calls this for fork branch tips without a release.
+  workflow_call:
+    inputs:
+      llvm_ref:
+        required: true
+        type: string
+      build_number:
+        required: false
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: triton-llvm-bundles-${{ inputs.llvm_ref }}-${{ inputs.build_number }}
+  cancel-in-progress: false
+
+env:
+  LLVM_DISTRIBUTION_COMPONENTS: llvm-headers;llvm-libraries;cmake-exports;mlir-headers;mlir-libraries;mlir-cmake-exports;lld-headers;lld-libraries;lld-cmake-exports;clang;clang-resource-headers;FileCheck;not;split-file;llc;opt;llvm-config;mlir-tblgen;mlir-translate
+
+jobs:
+  prepare:
+    name: Resolve LLVM revision
+    runs-on: ubuntu-24.04
+    outputs:
+      llvm_sha: ${{ steps.revision.outputs.llvm_sha }}
+      short_sha: ${{ steps.revision.outputs.short_sha }}
+      platforms: ${{ steps.missing.outputs.platforms }}
+    steps:
+      - name: Checkout requested LLVM revision
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.llvm_ref }}
+
+      - name: Resolve commit
+        id: revision
+        shell: bash
+        run: |
+          llvm_sha="$(git rev-parse HEAD)"
+          echo "llvm_sha=${llvm_sha}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${llvm_sha:0:8}" >> "${GITHUB_OUTPUT}"
+
+      # Releases are immutable: build only the platforms this release lacks and no
+      # other run is building. Build job names carry the commit, so a build started
+      # by hand or by scheduled-triton-llvm-bundles.yml is visible either way.
+      - name: Select missing platforms
+        id: missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          short_sha="${{ steps.revision.outputs.short_sha }}"
+          build_number="${{ inputs.build_number }}"
+          have="$(gh release view "llvm-${short_sha}-${build_number}" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+          busy=""
+          for status in queued in_progress; do
+            for run_id in $(gh api "repos/${GH_REPO}/actions/runs?status=${status}&per_page=100" \
+                              --jq ".workflow_runs[] | select(.id != ${GITHUB_RUN_ID}) | .id"); do
+              busy+="$(gh api "repos/${GH_REPO}/actions/runs/${run_id}/jobs?per_page=100" \
+                         --jq '.jobs[] | select(.status != "completed") | .name')"$'\n'
+            done
+          done
+          platforms="$(jq -cn --arg have "${have}" --arg busy "${busy}" --arg s "${short_sha}" --arg n "${build_number}" '
+            [ {target_os: "almalinux", arch: "x64",   runs_on: "ubuntu-22.04",     container: "almalinux:8.10-20250411"},
+              {target_os: "almalinux", arch: "arm64", runs_on: "ubuntu-22.04-arm", container: "almalinux:8.10-20250411"},
+              # Ubuntu 22.04 (glibc 2.35): Triton picks these on glibc > 2.28 hosts.
+              {target_os: "ubuntu",    arch: "x64",   runs_on: "ubuntu-22.04",     container: ""},
+              {target_os: "ubuntu",    arch: "arm64", runs_on: "ubuntu-22.04-arm", container: ""} ]
+            | map(select(("llvm-\($s)-\(.target_os)-\(.arch)-\($n).tar.gz") as $name
+                         | ($have | split("\n") | index($name)) == null))
+            | map(select(("Build \($s) \(.target_os)-\(.arch)") as $job
+                         | [$busy | split("\n")[] | select(contains($job))] | length == 0))')"
+          echo "platforms=${platforms}" >> "${GITHUB_OUTPUT}"
+          echo "Building: $(jq -r 'map("\(.target_os)-\(.arch)") | join(", ") | if . == "" then "nothing (published or building elsewhere)" else . end' <<< "${platforms}")"
+
+  build:
+    # The prepare job's in-flight check matches this name; keep the commit in it.
+    name: Build ${{ needs.prepare.outputs.short_sha }} ${{ matrix.config.target_os }}-${{ matrix.config.arch }}
+    needs: prepare
+    if: needs.prepare.outputs.platforms != '[]'
+    runs-on: ${{ matrix.config.runs_on }}
+    container: ${{ matrix.config.container }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ${{ fromJSON(needs.prepare.outputs.platforms) }}
+
+    steps:
+      - name: Checkout LLVM
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.llvm_sha }}
+
+      - name: Install system prerequisites (AlmaLinux)
+        if: matrix.config.target_os == 'almalinux'
+        run: |
+          rpm --import https://packages.microsoft.com/keys/microsoft.asc
+          dnf install --assumeyes https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+          dnf install --assumeyes llvm-toolset-20.1.8 python38-pip python38-devel git tar gzip
+          alternatives --set python3 /usr/bin/python3.8
+
+      - name: Set up Python (Ubuntu)
+        if: matrix.config.target_os == 'ubuntu'
+        uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Free disk space (Ubuntu x64)
+        if: matrix.config.target_os == 'ubuntu' && matrix.config.arch == 'x64'
+        run: |
+          sudo apt-get remove -y 'php.*' google-chrome-stable firefox powershell mono-devel
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          df -h
+
+      - name: Install build tools
+        run: python3 -m pip install cmake ninja
+
+      # Compiler cache in the Actions cache; most bumps change a handful of files.
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Define bundle name
+        shell: bash
+        run: |
+          bundle_name="llvm-${{ needs.prepare.outputs.short_sha }}-${{ matrix.config.target_os }}-${{ matrix.config.arch }}-${{ inputs.build_number }}"
+          echo "bundle_name=${bundle_name}" >> "${GITHUB_ENV}"
+          echo "install_dir=${GITHUB_WORKSPACE}/out/${bundle_name}" >> "${GITHUB_ENV}"
+
+      - name: Configure LLVM
+        shell: bash
+        run: |
+          cmake_args=(
+            -GNinja
+            -S llvm
+            -B "${RUNNER_TEMP}/llvm-build"
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_C_COMPILER=clang
+            -DCMAKE_CXX_COMPILER=clang++
+            -DCMAKE_INSTALL_PREFIX="${install_dir}"
+            -DCMAKE_LINKER=lld
+            -DLLVM_BUILD_UTILS=ON
+            -DLLVM_BUILD_TOOLS=ON
+            -DLLVM_ENABLE_ASSERTIONS=ON
+            -DMLIR_ENABLE_BINDINGS_PYTHON=OFF
+            -DLLVM_ENABLE_PROJECTS=mlir\;llvm\;lld\;clang
+            -DLLVM_DISTRIBUTION_COMPONENTS="${LLVM_DISTRIBUTION_COMPONENTS}"
+            -DLLVM_INSTALL_UTILS=ON
+            -DLLVM_TARGETS_TO_BUILD=host\;NVPTX\;AMDGPU
+            -DLLVM_ENABLE_ZSTD=OFF
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          )
+          if [[ "${{ matrix.config.target_os }}" == "almalinux" ]]; then
+            cmake_args+=(
+              -DCMAKE_ASM_COMPILER=clang
+              -DCMAKE_CXX_FLAGS=-Wno-everything
+              -DPython3_EXECUTABLE=/usr/bin/python3.8
+              -DPython_EXECUTABLE=/usr/bin/python3.8
+            )
+          fi
+          cmake "${cmake_args[@]}"
+
+      - name: Build, test, and install LLVM
+        run: >-
+          cmake --build "${RUNNER_TEMP}/llvm-build"
+          --target check-mlir install-distribution
+          --parallel 4
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats
+
+      - name: Package bundle
+        shell: bash
+        run: |
+          tar -czf "out/${bundle_name}.tar.gz" -C out "${bundle_name}"
+          cd out
+          sha256sum "${bundle_name}.tar.gz" > "${bundle_name}.tar.gz.sha256"
+          cat "${bundle_name}.tar.gz.sha256"
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ env.bundle_name }}
+          path: |
+            out/${{ env.bundle_name }}.tar.gz
+            out/${{ env.bundle_name }}.tar.gz.sha256
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - prepare
+      - build
+    # Publish whatever built: one failed platform must not hold back the others.
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.prepare.outputs.platforms != '[]' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download bundles
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: llvm-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          llvm_sha="${{ needs.prepare.outputs.llvm_sha }}"
+          short_sha="${{ needs.prepare.outputs.short_sha }}"
+          tag="llvm-${short_sha}-${{ inputs.build_number }}"
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            existing_assets="$(gh release view "${tag}" --json assets --jq '.assets[].name')"
+          else
+            gh release create "${tag}" \
+              --target "${llvm_sha}" \
+              --title "LLVM for Triton (${short_sha}, build ${{ inputs.build_number }})" \
+              --notes "Prebuilt LLVM bundles for Triton from ${llvm_sha}."
+            existing_assets=""
+          fi
+
+          shopt -s nullglob
+          for archive in dist/*.tar.gz; do
+            asset_name="${archive##*/}"
+            if awk -v name="${asset_name}" '$0 == name { found = 1 } END { exit !found }' <<< "${existing_assets}"; then
+              echo "Keeping existing immutable asset ${asset_name}"
+              continue
+            fi
+            gh release upload "${tag}" "${archive}" "${archive}.sha256"
+          done
+
+          gh release view "${tag}" --json url --jq '.url'

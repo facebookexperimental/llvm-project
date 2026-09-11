@@ -1,0 +1,70 @@
+name: Scheduled Triton LLVM bundles
+# Builds bundles for every triton_* branch tip that has no release yet, by
+# calling release-triton-llvm-bundles.yml. ShipIt's empty sync commits do not
+# trigger a build: a tip whose tree matches an already-released commit under it
+# counts as released. Tips that are already released cost one API call each.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run at a time, never cancelled mid-build. GitHub keeps only the newest
+# pending run, so hourly checks queued behind a long build collapse into one.
+concurrency:
+  group: scheduled-triton-llvm-bundles
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      tips: ${{ steps.plan.outputs.tips }}
+    steps:
+      - name: Find unreleased triton_* tips
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: python
+        run: |
+          import json, os, re, subprocess
+
+          def api(path):
+              return json.loads(subprocess.check_output(["gh", "api", "--paginate", "--slurp", path]))
+
+          repo = os.environ["GH_REPO"]
+          released = {}
+          for page in api(f"repos/{repo}/releases?per_page=100"):
+              for release in page:
+                  if re.fullmatch(r"llvm-[0-9a-f]{8}-[0-9]+", release["tag_name"]):
+                      released[release["target_commitish"]] = release["tag_name"]
+          tips = []
+          for page in api(f"repos/{repo}/git/matching-refs/heads/triton_"):
+              for ref in page:
+                  branch = ref["ref"].removeprefix("refs/heads/")
+                  commits = json.loads(subprocess.check_output(
+                      ["gh", "api", f"repos/{repo}/commits?sha={branch}&per_page=30"]))
+                  tip_tree = commits[0]["commit"]["tree"]["sha"]
+                  same_tree = [c["sha"] for c in commits if c["commit"]["tree"]["sha"] == tip_tree]
+                  done = next((released[sha] for sha in same_tree if sha in released), None)
+                  print(f"{branch}: tip {commits[0]['sha'][:12]} -> {done or 'build'}")
+                  if done is None:
+                      tips.append(commits[0]["sha"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"tips={json.dumps(tips)}\n")
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.tips != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm_ref: ${{ fromJSON(needs.plan.outputs.tips) }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release-triton-llvm-bundles.yml
+    with:
+      llvm_ref: ${{ matrix.llvm_ref }}
