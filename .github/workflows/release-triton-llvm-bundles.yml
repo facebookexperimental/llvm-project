@@ -1,0 +1,189 @@
+name: Release Triton LLVM bundles
+
+on:
+  workflow_dispatch:
+    inputs:
+      llvm_ref:
+        description: LLVM commit or ref to package
+        required: true
+        type: string
+      build_number:
+        description: Monotonically increasing build number for this LLVM commit
+        required: true
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: triton-llvm-bundles-${{ inputs.llvm_ref }}-${{ inputs.build_number }}
+  cancel-in-progress: false
+
+env:
+  LLVM_DISTRIBUTION_COMPONENTS: llvm-headers;llvm-libraries;cmake-exports;mlir-headers;mlir-libraries;mlir-cmake-exports;lld-headers;lld-libraries;lld-cmake-exports;clang;clang-resource-headers;FileCheck;not;split-file;llc;opt;llvm-config;mlir-tblgen;mlir-translate
+
+jobs:
+  prepare:
+    name: Resolve LLVM revision
+    runs-on: ubuntu-24.04
+    outputs:
+      llvm_sha: ${{ steps.revision.outputs.llvm_sha }}
+      short_sha: ${{ steps.revision.outputs.short_sha }}
+    steps:
+      - name: Checkout requested LLVM revision
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.llvm_ref }}
+
+      - name: Resolve commit
+        id: revision
+        shell: bash
+        run: |
+          llvm_sha="$(git rev-parse HEAD)"
+          echo "llvm_sha=${llvm_sha}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${llvm_sha:0:8}" >> "${GITHUB_OUTPUT}"
+
+  build:
+    name: Build ${{ matrix.config.target_os }}-${{ matrix.config.arch }}
+    needs: prepare
+    runs-on: ${{ matrix.config.runs_on }}
+    container: ${{ matrix.config.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - target_os: almalinux
+            arch: x64
+            runs_on: ubuntu-22.04
+            container: almalinux:8.10-20250411
+          - target_os: almalinux
+            arch: arm64
+            runs_on: ubuntu-22.04-arm
+            container: almalinux:8.10-20250411
+
+    steps:
+      - name: Checkout LLVM
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.llvm_sha }}
+
+      - name: Install system prerequisites
+        run: |
+          rpm --import https://packages.microsoft.com/keys/microsoft.asc
+          dnf install --assumeyes https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+          dnf install --assumeyes llvm-toolset-20.1.8 python38-pip python38-devel git tar gzip
+          alternatives --set python3 /usr/bin/python3.8
+
+      - name: Install build tools
+        run: python3 -m pip install cmake ninja
+
+      - name: Define bundle name
+        shell: bash
+        run: |
+          bundle_name="llvm-${{ needs.prepare.outputs.short_sha }}-${{ matrix.config.target_os }}-${{ matrix.config.arch }}-${{ inputs.build_number }}"
+          echo "bundle_name=${bundle_name}" >> "${GITHUB_ENV}"
+          echo "install_dir=${GITHUB_WORKSPACE}/out/${bundle_name}" >> "${GITHUB_ENV}"
+
+      - name: Configure LLVM
+        shell: bash
+        run: |
+          cmake_args=(
+            -GNinja
+            -S llvm
+            -B "${RUNNER_TEMP}/llvm-build"
+            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_C_COMPILER=clang
+            -DCMAKE_CXX_COMPILER=clang++
+            -DCMAKE_INSTALL_PREFIX="${install_dir}"
+            -DCMAKE_LINKER=lld
+            -DLLVM_BUILD_UTILS=ON
+            -DLLVM_BUILD_TOOLS=ON
+            -DLLVM_ENABLE_ASSERTIONS=ON
+            -DMLIR_ENABLE_BINDINGS_PYTHON=OFF
+            -DLLVM_ENABLE_PROJECTS=mlir\;llvm\;lld\;clang
+            -DLLVM_DISTRIBUTION_COMPONENTS="${LLVM_DISTRIBUTION_COMPONENTS}"
+            -DLLVM_INSTALL_UTILS=ON
+            -DLLVM_TARGETS_TO_BUILD=host\;NVPTX\;AMDGPU
+            -DLLVM_ENABLE_ZSTD=OFF
+          )
+          cmake_args+=(
+            -DCMAKE_ASM_COMPILER=clang
+            -DCMAKE_CXX_FLAGS=-Wno-everything
+            -DPython3_EXECUTABLE=/usr/bin/python3.8
+            -DPython_EXECUTABLE=/usr/bin/python3.8
+          )
+          cmake "${cmake_args[@]}"
+
+      - name: Build, test, and install LLVM
+        run: >-
+          cmake --build "${RUNNER_TEMP}/llvm-build"
+          --target check-mlir install-distribution
+          --parallel 4
+
+      - name: Package bundle
+        shell: bash
+        run: |
+          tar -czf "out/${bundle_name}.tar.gz" -C out "${bundle_name}"
+          cd out
+          sha256sum "${bundle_name}.tar.gz" > "${bundle_name}.tar.gz.sha256"
+          cat "${bundle_name}.tar.gz.sha256"
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ env.bundle_name }}
+          path: |
+            out/${{ env.bundle_name }}.tar.gz
+            out/${{ env.bundle_name }}.tar.gz.sha256
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - prepare
+      - build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download bundles
+        uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: llvm-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          llvm_sha="${{ needs.prepare.outputs.llvm_sha }}"
+          short_sha="${{ needs.prepare.outputs.short_sha }}"
+          tag="llvm-${short_sha}-${{ inputs.build_number }}"
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            existing_assets="$(gh release view "${tag}" --json assets --jq '.assets[].name')"
+          else
+            gh release create "${tag}" \
+              --target "${llvm_sha}" \
+              --title "LLVM for Triton (${short_sha}, build ${{ inputs.build_number }})" \
+              --notes "Prebuilt LLVM bundles for Triton from ${llvm_sha}."
+            existing_assets=""
+          fi
+
+          for archive in dist/*.tar.gz; do
+            asset_name="${archive##*/}"
+            if awk -v name="${asset_name}" '$0 == name { found = 1 } END { exit !found }' <<< "${existing_assets}"; then
+              echo "Keeping existing immutable asset ${asset_name}"
+              continue
+            fi
+            gh release upload "${tag}" "${archive}" "${archive}.sha256"
+          done
+
+          gh release view "${tag}" --json url --jq '.url'
