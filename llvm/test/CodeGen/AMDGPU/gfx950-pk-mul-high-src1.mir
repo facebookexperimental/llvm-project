@@ -1,0 +1,42 @@
+# RUN: llc -mtriple=amdgcn-amd-amdhsa -mcpu=gfx950 -run-pass=si-pre-emit-peephole -verify-machineinstrs %s -o - | FileCheck %s --check-prefixes=GFX950,COMMON
+# RUN: llc -mtriple=amdgcn-amd-amdhsa -mcpu=gfx942 -run-pass=si-pre-emit-peephole -verify-machineinstrs %s -o - | FileCheck %s --check-prefixes=OTHER,COMMON
+# RUN: llc -mtriple=amdgcn-amd-amdhsa -mcpu=gfx90a -run-pass=si-pre-emit-peephole -verify-machineinstrs %s -o - | FileCheck %s --check-prefixes=OTHER,COMMON
+
+---
+name: high_src1
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0_vgpr1, $vgpr2_vgpr3
+
+    ; COMMON-LABEL: name: high_src1
+    ; GFX950: $vgpr0_vgpr1 = V_PK_MUL_F32 12, $vgpr2_vgpr3, 8, $vgpr0_vgpr1, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; GFX950-NEXT: $vgpr4_vgpr5 = V_PK_MUL_F32 12, killed $vgpr2_vgpr3, 8, killed $vgpr0_vgpr1, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; OTHER: $vgpr0_vgpr1 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; OTHER-NEXT: $vgpr4_vgpr5 = V_PK_MUL_F32 8, killed $vgpr0_vgpr1, 12, killed $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: S_ENDPGM 0
+    $vgpr0_vgpr1 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr4_vgpr5 = V_PK_MUL_F32 8, killed $vgpr0_vgpr1, 12, killed $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    S_ENDPGM 0
+...
+---
+name: other_forms
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0_vgpr1, $vgpr2_vgpr3
+
+    ; COMMON-LABEL: name: other_forms
+    ; COMMON: $vgpr4_vgpr5 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr6_vgpr7 = V_PK_MUL_F32 12, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr8_vgpr9 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 0, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr10_vgpr11 = V_PK_MUL_F32 9, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr12_vgpr13 = V_PK_ADD_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: S_ENDPGM 0
+    $vgpr4_vgpr5 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr6_vgpr7 = V_PK_MUL_F32 12, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr8_vgpr9 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 0, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr10_vgpr11 = V_PK_MUL_F32 9, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr12_vgpr13 = V_PK_ADD_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    S_ENDPGM 0
+...
