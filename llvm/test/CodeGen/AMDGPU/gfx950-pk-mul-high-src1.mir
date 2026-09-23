@@ -20,6 +20,29 @@ body: |
     S_ENDPGM 0
 ...
 ---
+name: low_lane_high_src1
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0_vgpr1, $vgpr2_vgpr3
+
+    ; COMMON-LABEL: name: low_lane_high_src1
+    ; GFX950: $vgpr4_vgpr5 = V_PK_MUL_F32 4, $vgpr2_vgpr3, 0, $vgpr0_vgpr1, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; GFX950-NEXT: $vgpr6_vgpr7 = V_PK_MUL_F32 12, $vgpr2_vgpr3, 0, $vgpr0_vgpr1, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; GFX950-NEXT: $vgpr8_vgpr9 = V_PK_MUL_F32 4, killed $vgpr2_vgpr3, 8, killed $vgpr0_vgpr1, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; GFX950-NEXT: $vgpr10_vgpr11 = V_PK_MUL_F32 12, $vgpr6_vgpr7, 9, $vgpr4_vgpr5, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; OTHER: $vgpr4_vgpr5 = V_PK_MUL_F32 0, $vgpr0_vgpr1, 4, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; OTHER-NEXT: $vgpr6_vgpr7 = V_PK_MUL_F32 0, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; OTHER-NEXT: $vgpr8_vgpr9 = V_PK_MUL_F32 8, killed $vgpr0_vgpr1, 4, killed $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; OTHER-NEXT: $vgpr10_vgpr11 = V_PK_MUL_F32 9, $vgpr4_vgpr5, 12, $vgpr6_vgpr7, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: S_ENDPGM 0
+    $vgpr4_vgpr5 = V_PK_MUL_F32 0, $vgpr0_vgpr1, 4, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr6_vgpr7 = V_PK_MUL_F32 0, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr8_vgpr9 = V_PK_MUL_F32 8, killed $vgpr0_vgpr1, 4, killed $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr10_vgpr11 = V_PK_MUL_F32 9, $vgpr4_vgpr5, 12, $vgpr6_vgpr7, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    S_ENDPGM 0
+...
+---
 name: other_forms
 tracksRegLiveness: true
 body: |
@@ -30,13 +53,17 @@ body: |
     ; COMMON: $vgpr4_vgpr5 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
     ; COMMON-NEXT: $vgpr6_vgpr7 = V_PK_MUL_F32 12, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
     ; COMMON-NEXT: $vgpr8_vgpr9 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 0, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
-    ; COMMON-NEXT: $vgpr10_vgpr11 = V_PK_MUL_F32 9, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
-    ; COMMON-NEXT: $vgpr12_vgpr13 = V_PK_ADD_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr10_vgpr11 = V_PK_MUL_F32 13, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr12_vgpr13 = V_PK_MUL_F32 4, $vgpr0_vgpr1, 4, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr14_vgpr15 = V_PK_MUL_F32 12, $vgpr0_vgpr1, 4, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    ; COMMON-NEXT: $vgpr16_vgpr17 = V_PK_ADD_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
     ; COMMON-NEXT: S_ENDPGM 0
     $vgpr4_vgpr5 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
     $vgpr6_vgpr7 = V_PK_MUL_F32 12, $vgpr0_vgpr1, 8, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
     $vgpr8_vgpr9 = V_PK_MUL_F32 8, $vgpr0_vgpr1, 0, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
-    $vgpr10_vgpr11 = V_PK_MUL_F32 9, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
-    $vgpr12_vgpr13 = V_PK_ADD_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr10_vgpr11 = V_PK_MUL_F32 13, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr12_vgpr13 = V_PK_MUL_F32 4, $vgpr0_vgpr1, 4, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr14_vgpr15 = V_PK_MUL_F32 12, $vgpr0_vgpr1, 4, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
+    $vgpr16_vgpr17 = V_PK_ADD_F32 8, $vgpr0_vgpr1, 12, $vgpr2_vgpr3, 0, 0, 0, 0, 0, implicit $mode, implicit $exec
     S_ENDPGM 0
 ...

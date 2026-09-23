@@ -796,12 +796,20 @@ bool SIPreEmitPeephole::run(MachineFunction &MF, MachineLoopInfo *LoopInfo) {
             TII->getNamedOperand(MI, AMDGPU::OpName::src0_modifiers);
         const auto *Src1Mods =
             TII->getNamedOperand(MI, AMDGPU::OpName::src1_modifiers);
-        if (Src0Mods->getImm() != SISrcMods::OP_SEL_1 ||
-            Src1Mods->getImm() != (SISrcMods::OP_SEL_0 | SISrcMods::OP_SEL_1))
+        // On gfx950, a V_PK_MUL_F32 whose source 1 selects the high DWORD
+        // for the low result lane (OP_SEL_0 set on source 1) can produce
+        // incorrect results in/around MFMA sequences, even beyond the
+        // modeled dependency latency. Canonicalize by commuting whenever
+        // the old source 0 selects low for the low lane: the commuted
+        // source 1 (old source 0) then selects low and is unaffected.
+        // This generalizes the (OP_SEL_1, OP_SEL_0|OP_SEL_1) case: the
+        // (0, OP_SEL_0) form fails the same way on hardware (it is the
+        // inline-asm reproducer's failing shape) and commutes to the
+        // passing (OP_SEL_0, 0) shape.
+        if ((Src1Mods->getImm() & SISrcMods::OP_SEL_0) == 0 ||
+            (Src0Mods->getImm() & SISrcMods::OP_SEL_0) != 0)
           continue;
 
-        // On gfx950, a high source-1 broadcast can produce incorrect results
-        // in MFMA sequences, even beyond the modeled dependency latency.
         Changed |= TII->commuteInstruction(MI, /*NewMI=*/false) != nullptr;
       }
     }
