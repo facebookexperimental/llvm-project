@@ -275,7 +275,6 @@ getVectorLoweringShape(EVT VectorEVT, const NVPTXSubtarget &STI,
     break;
 
   case MVT::v8f32: // <4 x f32x2>
-  case MVT::v8i32: // <4 x i32x2>
     // This is a "native" vector type iff the address space is global and the
     // target supports 256-bit loads/stores
     if (!CanLowerTo256Bit)
@@ -283,9 +282,20 @@ getVectorLoweringShape(EVT VectorEVT, const NVPTXSubtarget &STI,
     [[fallthrough]];
   case MVT::v2f32: // <1 x f32x2>
   case MVT::v4f32: // <2 x f32x2>
+    if (!STI.hasF32x2Instructions())
+      return std::pair(NumElts, EltVT);
+    PackRegSize = 64;
+    break;
+
+  case MVT::v8i32: // <4 x i32x2>
+    // This is a "native" vector type iff the address space is global and the
+    // target supports 256-bit loads/stores
+    if (!CanLowerTo256Bit)
+      return std::nullopt;
+    [[fallthrough]];
   case MVT::v2i32: // <1 x i32x2>
   case MVT::v4i32: // <2 x i32x2>
-    if (!STI.hasF32x2Instructions())
+    if (!STI.hasV2I32Registers())
       return std::pair(NumElts, EltVT);
     PackRegSize = 64;
     break;
@@ -611,6 +621,8 @@ NVPTXTargetLowering::NVPTXTargetLowering(const NVPTXTargetMachine &TM,
 
   if (STI.hasF32x2Instructions()) {
     addRegisterClass(MVT::v2f32, &NVPTX::B64RegClass);
+  }
+  if (STI.hasV2I32Registers()) {
     addRegisterClass(MVT::v2i32, &NVPTX::B64RegClass);
   }
 
@@ -659,8 +671,9 @@ NVPTXTargetLowering::NVPTXTargetLowering(const NVPTXTargetMachine &TM,
 
   // Need custom lowering in case the index is dynamic.
   if (STI.hasF32x2Instructions())
-    setOperationAction(ISD::EXTRACT_VECTOR_ELT, {MVT::v2f32, MVT::v2i32},
-                       Custom);
+    setOperationAction(ISD::EXTRACT_VECTOR_ELT, MVT::v2f32, Custom);
+  if (STI.hasV2I32Registers())
+    setOperationAction(ISD::EXTRACT_VECTOR_ELT, MVT::v2i32, Custom);
 
   // Custom conversions to/from v2i8.
   setOperationAction(ISD::BITCAST, MVT::v2i8, Custom);
@@ -3215,8 +3228,11 @@ static SDValue lowerIntrinsicWChain(SDValue Op, SelectionDAG &DAG) {
   default:
     return Op;
 
-  // These tcgen05 intrinsics return a v2i32, which is legal, so we have to
-  // lower them through LowerOperation() instead of ReplaceNodeResults().
+  // These tcgen05 intrinsics return a v2i32, which is legal only when
+  // v2i32 registers are enabled, so when it is legal they are lowered
+  // through LowerOperation() instead of ReplaceNodeResults(). When v2i32
+  // registers are disabled, ReplaceNodeResults() splits them instead;
+  // see the matching cases there.
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x1:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x2:
@@ -7557,6 +7573,7 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
   }
 
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x1:
+  case Intrinsic::nvvm_tcgen05_ld_16x64b_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x4:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x8:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x16:
@@ -7564,12 +7581,14 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x64:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x128:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x1:
+  case Intrinsic::nvvm_tcgen05_ld_32x32b_x2:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x4:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x8:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x16:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x32:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x64:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x128:
+  case Intrinsic::nvvm_tcgen05_ld_16x128b_x1:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x4:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x8:
@@ -7589,6 +7608,7 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
     return;
 
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x1:
+  case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x4:
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x8:
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x16:
@@ -7601,6 +7621,8 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
     }
     return;
 
+  case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x2_i32:
+  case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x2_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x8_i32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x8_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x64_i32:
@@ -7613,6 +7635,8 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x16_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x128_i32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x128_f32:
+  case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x2_i32:
+  case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x2_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x8_i32:
   case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x8_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x64_i32:

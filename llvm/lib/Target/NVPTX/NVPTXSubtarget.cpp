@@ -34,6 +34,11 @@ static cl::opt<bool> NoF32x2("nvptx-no-f32x2", cl::Hidden,
                                       "f32x2 instructions and registers."),
                              cl::init(false));
 
+static cl::opt<bool> EnableV2I32Registers(
+    "nvptx-v2i32", cl::Hidden,
+    cl::desc("NVPTX Specific: Enable v2i32 register legalization."),
+    cl::init(false));
+
 // Pin the vtable to this file.
 void NVPTXSubtarget::anchor() {}
 
@@ -185,6 +190,10 @@ bool NVPTXSubtarget::allowFP16Math() const {
 
 bool NVPTXSubtarget::hasF32x2Instructions() const {
   return hasFeature(NVPTX::SM100) && !NoF32x2;
+}
+
+bool NVPTXSubtarget::hasV2I32Registers() const {
+  return hasF32x2Instructions() && EnableV2I32Registers;
 }
 
 bool NVPTXSubtarget::hasNativeBF16Support(unsigned Opcode) const {
