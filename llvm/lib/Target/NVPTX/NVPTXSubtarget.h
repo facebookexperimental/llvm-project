@@ -156,6 +156,7 @@ public:
 
   // f32x2 instructions in Blackwell family
   bool hasF32x2Instructions() const;
+  bool hasV2I32Registers() const;
 
   bool hasTensormapReplaceSupport() const {
     return hasAnyFeature({NVPTX::SM100f, NVPTX::SM110f, NVPTX::SM120f}) ||
