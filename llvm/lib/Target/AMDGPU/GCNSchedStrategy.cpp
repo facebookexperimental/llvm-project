@@ -205,7 +205,8 @@ void GCNSchedStrategy::initialize(ScheduleDAGMI *DAG) {
 
   // Apply VGPR excess threshold percentage if specified.
   if (VGPRExcessThresholdPercent && *VGPRExcessThresholdPercent > 0) {
-    unsigned OriginalVGPRExcessLimit = VGPRExcessLimit;
+    // Used only by LLVM_DEBUG below; NDEBUG builds warn under -Werror.
+    [[maybe_unused]] unsigned OriginalVGPRExcessLimit = VGPRExcessLimit;
     VGPRExcessLimit =
         (*VGPRExcessThresholdPercent * VGPRExcessLimit + 99) / 100;
     // If the new excess limit would be below the critical limit, adjust the

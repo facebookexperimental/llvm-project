@@ -257,7 +257,8 @@ void LIRPAllocTable::update(Register Reg, uint64_t PrevSubRegs,
 }
 
 void LIRPAllocTable::open(Register Reg, uint64_t Offsets) {
-  bool WasNew = !RegBase.count(Reg);
+  // Used only by LLVM_DEBUG below; NDEBUG builds warn under -Werror.
+  [[maybe_unused]] bool WasNew = !RegBase.count(Reg);
   unsigned OpenIdx = updateRegLanes(Reg, Offsets, /*IsOpen=*/true);
   LLVM_DEBUG(dbgs() << "OPEN " << printReg(Reg, &getTRI(*MRI)) << " slotmask="
                     << format_hex(Offsets, 4) << " idx=" << OpenIdx

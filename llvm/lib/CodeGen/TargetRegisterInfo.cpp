@@ -463,7 +463,8 @@ void TargetRegisterInfo::applyRegAllocationAntiHints(
   OrderStorage.assign(Order.begin(), Order.end());
 
   // Partition non-anti-hinted register go first
-  auto PartionPoint =
+  // Used only by LLVM_DEBUG below; NDEBUG builds warn under -Werror.
+  [[maybe_unused]] auto PartionPoint =
       std::stable_partition(OrderStorage.begin(), OrderStorage.end(),
                             [&](MCPhysReg Reg) { return !isAntiHinted(Reg); });
 
