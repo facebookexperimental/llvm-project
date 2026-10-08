@@ -25,24 +25,26 @@ visibility("private")
 def _cc_library_wrapper_impl(ctx):
     all_cc_infos = [dep[CcInfo] for dep in ctx.attr.deps]
     if ctx.attr.defines:
-        all_cc_infos.append(CcInfo(
-            compilation_context = cc_common.create_compilation_context(
-                defines = depset(ctx.attr.defines),
-            ),
-        ))
+        all_cc_infos.append(
+            CcInfo(
+                compilation_context = cc_common.create_compilation_context(
+                    defines = depset(ctx.attr.defines),
+                ),
+            )
+        )
 
     return cc_common.merge_cc_infos(direct_cc_infos = all_cc_infos)
 
 cc_library_wrapper = rule(
     implementation = _cc_library_wrapper_impl,
     attrs = {
-        "deps": attr.label_list(
-            doc = "Dependencies to cc_library targets to re-export.",
-            providers = [CcInfo],
-        ),
         "defines": attr.string_list(
             doc = "Additional preprocessor definitions to add to all dependent targets.",
             default = [],
+        ),
+        "deps": attr.label_list(
+            doc = "Dependencies to cc_library targets to re-export.",
+            providers = [CcInfo],
         ),
     },
     doc = "Re-export a cc_library with added LLVM specific settings.",

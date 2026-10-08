@@ -63,10 +63,12 @@ def _linux_uapi_setup_impl(repository_ctx):
         return
 
     if not include_dir.startswith("/"):
-        fail("{} must be absolute, was {}".format(
-            _SYSTEM_HEADERS_PATH_ENV_VAR,
-            include_dir,
-        ))
+        fail(
+            "{} must be absolute, was {}".format(
+                _SYSTEM_HEADERS_PATH_ENV_VAR,
+                include_dir,
+            )
+        )
 
     repository_ctx.symlink(include_dir, "include")
     repository_ctx.file("BUILD.bazel", _SYSTEM_BUILD)

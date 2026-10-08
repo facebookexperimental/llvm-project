@@ -23,7 +23,8 @@ def math_test(name, hdrs = [], deps = [], **kwargs):
     libc_test(
         name = test_name,
         srcs = [test_name + ".cpp"] + hdrs,
-        deps = ["//libc:func_name".replace("func_name", name)] + [
+        deps = ["//libc:func_name".replace("func_name", name)]
+        + [
             "//libc:__support_cpp_algorithm",
             "//libc:__support_cpp_bit",
             "//libc:__support_cpp_limits",
@@ -45,8 +46,9 @@ def math_test(name, hdrs = [], deps = [], **kwargs):
             "//libc:hdr_fenv_macros",
             "//libc:hdr_math_macros",
             "//libc/test/UnitTest:fp_test_helpers",
-        ] + deps,
-        **kwargs
+        ]
+        + deps,
+        **kwargs,
     )
 
 def math_mpfr_test(name, hdrs = [], deps = [], **kwargs):
@@ -58,9 +60,4 @@ def math_mpfr_test(name, hdrs = [], deps = [], **kwargs):
       deps: The list of other libraries to be linked in to the test target.
       **kwargs: Attributes relevant for a cc_test. For example, name, srcs.
     """
-    math_test(
-        name = name,
-        hdrs = hdrs,
-        deps = deps + ["//libc/utils/MPFRWrapper:mpfr_wrapper"],
-        **kwargs
-    )
+    math_test(name = name, hdrs = hdrs, deps = deps + ["//libc/utils/MPFRWrapper:mpfr_wrapper"], **kwargs)

@@ -4,6 +4,7 @@
 
 """BUILD extensions for MLIR linalg generation."""
 
+load("@fbsource//tools/build_defs:fb_native_wrapper.bzl", "fb_native")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 def genlinalg(name, linalggen, src, linalg_outs):
@@ -18,7 +19,7 @@ def genlinalg(name, linalggen, src, linalg_outs):
         produced.
     """
 
-    for (opts, out) in linalg_outs:
+    for opts, out in linalg_outs:
         # All arguments to generate the output except output destination.
         base_args = [
             "$(location %s)" % linalggen,
@@ -28,7 +29,7 @@ def genlinalg(name, linalggen, src, linalg_outs):
         rule_suffix = "_".join(opts.replace("-", "_").replace("=", "_").split(" "))
 
         # Rule to generate code using generated shell script.
-        native.genrule(
+        fb_native.genrule(
             name = "%s_%s_genrule" % (name, rule_suffix),
             srcs = [src],
             outs = [out],

@@ -17,10 +17,12 @@ def _binary_alias_impl(ctx):
         is_executable = True,
     )
 
-    return [DefaultInfo(
-        executable = ctx.outputs.executable,
-        runfiles = ctx.attr.binary[DefaultInfo].default_runfiles,
-    )]
+    return [
+        DefaultInfo(
+            executable = ctx.outputs.executable,
+            runfiles = ctx.attr.binary[DefaultInfo].default_runfiles,
+        )
+    ]
 
 binary_alias = rule(
     _binary_alias_impl,

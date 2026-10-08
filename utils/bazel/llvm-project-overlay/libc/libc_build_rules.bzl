@@ -6,6 +6,7 @@
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:selects.bzl", "selects")
+load("@fbsource//tools/build_defs:fb_native_wrapper.bzl", "fb_native")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load(":libc_configure_options.bzl", "LIBC_CONFIGURE_OPTIONS")
 load(":libc_namespace.bzl", "LIBC_NAMESPACE")
@@ -87,14 +88,7 @@ def _libc_library(name, deps = [], **kwargs):
     for attr in ["copts", "local_defines"]:
         if attr in kwargs:
             fail("disallowed attribute: '{}' in rule: '{}'".format(attr, name))
-    cc_library(
-        name = name,
-        copts = libc_common_copts(),
-        local_defines = LIBC_CONFIGURE_OPTIONS,
-        deps = deps + libc_common_deps(),
-        linkstatic = 1,
-        **kwargs
-    )
+    cc_library(name = name, copts = libc_common_copts(), local_defines = LIBC_CONFIGURE_OPTIONS, deps = deps + libc_common_deps(), linkstatic = 1, **kwargs)
 
 # A convenience function which should be used to list all libc support libraries.
 # Any library which does not define a public function should be listed with
@@ -124,32 +118,19 @@ LibcLibraryInfo = provider(
 )
 
 def _get_libc_info_aspect_impl(
-        target,  # @unused
-        ctx):
+    target,  # @unused
+    ctx,
+):
     maybe_srcs = getattr(ctx.rule.attr, "srcs", [])
     maybe_hdrs = getattr(ctx.rule.attr, "hdrs", [])
     maybe_textual_hdrs = getattr(ctx.rule.attr, "textual_hdrs", [])
     maybe_deps = getattr(ctx.rule.attr, "deps", [])
     return LibcLibraryInfo(
         srcs = depset(
-            transitive = [
-                dep[LibcLibraryInfo].srcs
-                for dep in maybe_deps
-                if LibcLibraryInfo in dep
-            ] + [
-                src.files
-                for src in maybe_srcs + maybe_hdrs
-            ],
+            transitive = [dep[LibcLibraryInfo].srcs for dep in maybe_deps if LibcLibraryInfo in dep] + [src.files for src in maybe_srcs + maybe_hdrs],
         ),
         textual_hdrs = depset(
-            transitive = [
-                dep[LibcLibraryInfo].textual_hdrs
-                for dep in maybe_deps
-                if LibcLibraryInfo in dep
-            ] + [
-                hdr.files
-                for hdr in maybe_textual_hdrs
-            ],
+            transitive = [dep[LibcLibraryInfo].textual_hdrs for dep in maybe_deps if LibcLibraryInfo in dep] + [hdr.files for hdr in maybe_textual_hdrs],
         ),
     )
 
@@ -159,10 +140,7 @@ _get_libc_info_aspect = aspect(
 )
 
 def _libc_srcs_filegroup_impl(ctx):
-    srcs = depset(transitive = [
-        fn[LibcLibraryInfo].srcs
-        for fn in ctx.attr.libs
-    ])
+    srcs = depset(transitive = [fn[LibcLibraryInfo].srcs for fn in ctx.attr.libs])
     if ctx.attr.enforce_headers_only:
         paths = [f.short_path for f in srcs.to_list() if f.extension != "h"]
         if paths:
@@ -173,20 +151,17 @@ _libc_srcs_filegroup = rule(
     doc = "Returns all sources for building the specified libraries.",
     implementation = _libc_srcs_filegroup_impl,
     attrs = {
+        "enforce_headers_only": attr.bool(default = False),
         "libs": attr.label_list(
             mandatory = True,
             aspects = [_get_libc_info_aspect],
         ),
-        "enforce_headers_only": attr.bool(default = False),
     },
 )
 
 def _libc_textual_hdrs_filegroup_impl(ctx):
     return DefaultInfo(
-        files = depset(transitive = [
-            fn[LibcLibraryInfo].textual_hdrs
-            for fn in ctx.attr.libs
-        ]),
+        files = depset(transitive = [fn[LibcLibraryInfo].textual_hdrs for fn in ctx.attr.libs]),
     )
 
 _libc_textual_hdrs_filegroup = rule(
@@ -200,12 +175,7 @@ _libc_textual_hdrs_filegroup = rule(
     },
 )
 
-def libc_release_library(
-        name,
-        libc_functions,
-        weak_symbols = [],
-        srcs = [],
-        **kwargs):
+def libc_release_library(name, libc_functions, weak_symbols = [], srcs = [], **kwargs):
     """Create the release version of a libc library.
 
     Args:
@@ -231,10 +201,7 @@ def libc_release_library(
         textual_hdrs = [":" + name + "_textual_hdrs"],
     )
 
-    weak_attributes = [
-        "LLVM_LIBC_FUNCTION_ATTR_" + name + "='LLVM_LIBC_EMPTY, [[gnu::weak]]'"
-        for name in weak_symbols
-    ]
+    weak_attributes = ["LLVM_LIBC_FUNCTION_ATTR_" + name + "='LLVM_LIBC_EMPTY, [[gnu::weak]]'" for name in weak_symbols]
     cc_library(
         name = name,
         srcs = [":" + name + "_srcs"] + srcs,
@@ -242,8 +209,9 @@ def libc_release_library(
         local_defines = weak_attributes + LIBC_CONFIGURE_OPTIONS,
         deps = [
             ":" + name + "_textual_hdr_library",
-        ] + libc_common_deps(),
-        **kwargs
+        ]
+        + libc_common_deps(),
+        **kwargs,
     )
 
 def libc_header_library(name, hdrs, deps = [], **kwargs):
@@ -281,7 +249,7 @@ def libc_header_library(name, hdrs, deps = [], **kwargs):
         # need proper -I flags for header validation, which are specified in
         # libc_common_copts().
         copts = libc_common_copts(),
-        **kwargs
+        **kwargs,
     )
 
     # Also generate a filegroup that contains _all_ of the headers for use in
@@ -310,12 +278,12 @@ def libc_generated_header(name, hdr, yaml_template, other_srcs = [], proxy = Fal
 
     if not hdr.startswith("staging/"):
         fail(
-            "Generated headers should be placed in a 'staging/' directory " +
-            "so that they can be treated differently from constant source files " +
-            "when bootstrapping builds.",
+            "Generated headers should be placed in a 'staging/' directory "
+            + "so that they can be treated differently from constant source files "
+            + "when bootstrapping builds.",
         )
 
-    native.genrule(
+    fb_native.genrule(
         name = name,
         outs = [hdr],
         srcs = [yaml_template] + other_srcs,
@@ -323,11 +291,7 @@ def libc_generated_header(name, hdr, yaml_template, other_srcs = [], proxy = Fal
         tools = [hdrgen],
     )
 
-def libc_header_info(
-        name,
-        has_def_template = False,
-        proxy = False,
-        other_srcs = []):
+def libc_header_info(name, has_def_template = False, proxy = False, other_srcs = []):
     return struct(
         target_name = "include_{}_h".format(name.replace("/", "_")),
         staging_path = "staging/include/{}.h".format(name),
@@ -336,9 +300,7 @@ def libc_header_info(
         other_srcs = other_srcs + (["include/{}.h.def".format(name)] if has_def_template else []),
     )
 
-def libc_math_function(
-        name,
-        additional_deps = None):
+def libc_math_function(name, additional_deps = None):
     """Add a target for a math function.
 
     Args:
@@ -348,7 +310,7 @@ def libc_math_function(
     """
     additional_deps = additional_deps or []
 
-    #TODO(michaelrj): Fix the floating point dependencies
+    # TODO(michaelrj): Fix the floating point dependencies
     OLD_FPUTIL_DEPS = [
         ":__support_fputil_basic_operations",
         ":__support_fputil_division_and_remainder_operations",
@@ -369,5 +331,7 @@ def libc_math_function(
             ":__support_common",
             ":__support_macros_config",
             ":__support_macros_properties_types",
-        ] + OLD_FPUTIL_DEPS + additional_deps,
+        ]
+        + OLD_FPUTIL_DEPS
+        + additional_deps,
     )

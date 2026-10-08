@@ -25,14 +25,7 @@ _FULL_BUILD_COPTS = [
 
 _TEST_DEFINES = ["LIBC_TEST_SUBPROCESS_TESTS=1"]
 
-def libc_test(
-        name,
-        copts = [],
-        deps = [],
-        local_defines = [],
-        c_test = False,
-        full_build = False,
-        **kwargs):
+def libc_test(name, copts = [], deps = [], local_defines = [], c_test = False, full_build = False, **kwargs):
     """Add target for a libc test.
 
     Args:
@@ -74,7 +67,7 @@ def libc_test(
         copts = copts + libc_common_copts(),
         linkstatic = 1,
         tags = tags,
-        **kwargs
+        **kwargs,
     )
 
 def libc_test_library(name, copts = [], local_defines = [], **kwargs):
@@ -92,5 +85,5 @@ def libc_test_library(name, copts = [], local_defines = [], **kwargs):
         copts = copts + libc_common_copts(),
         local_defines = local_defines + _TEST_DEFINES + LIBC_CONFIGURE_OPTIONS,
         linkstatic = 1,
-        **kwargs
+        **kwargs,
     )
