@@ -4350,7 +4350,8 @@ void SIRegisterInfo::applyRegAllocationAntiHints(
                    [&](MCPhysReg Reg) { return !IsWithinBudget(Reg); });
 
   // Only shuffle within the current occupancy VGPR budget.
-  auto *PartitionPoint =
+  // Used only by LLVM_DEBUG below; NDEBUG builds warn under -Werror.
+  [[maybe_unused]] auto *PartitionPoint =
       std::stable_partition(OrderStorage.begin(), BeyondBudgetStart,
                             [&](MCPhysReg Reg) { return !isAntiHinted(Reg); });
 
