@@ -30676,6 +30676,10 @@ SDValue DAGCombiner::SimplifyVCastOp(SDNode *N, const SDLoc &DL) {
   SDValue N0 = N->getOperand(0);
   const TargetLowering &TLI = DAG.getTargetLoweringInfo();
 
+  if (!LegalOperations && !VT.isScalableVector() &&
+      (Opcode == ISD::SIGN_EXTEND || Opcode == ISD::ZERO_EXTEND))
+    return SDValue();
+
   // TODO: promote operation might be also good here?
   int Index0;
   SDValue Src0 = DAG.getSplatSourceVector(N0, Index0);
