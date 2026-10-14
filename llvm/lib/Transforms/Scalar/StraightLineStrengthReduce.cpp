@@ -75,6 +75,7 @@
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/ScalarEvolutionExpressions.h"
@@ -126,6 +127,9 @@ DEBUG_COUNTER(StraightLineStrengthReduceCounter, "slsr-counter",
 static cl::opt<bool>
     EnablePoisonReuseGuard("enable-poison-reuse-guard", cl::init(true),
                            cl::desc("Enable poison-reuse guard"));
+
+STATISTIC(NumSCEVCandidateBasisDifferences,
+          "Number of candidate-basis SCEV differences computed by SLSR");
 
 namespace {
 
@@ -223,6 +227,10 @@ public:
 
     // Points to (Y - X) that will be used to rewrite this candidate.
     Value *Delta = nullptr;
+
+    // List of instructions whose poison-generating annotations must be dropped
+    // if this candidate is used as the basis of an executed rewrite.
+    SmallVector<Instruction *> DropList;
 
     /// Cost model: Evaluate the computational efficiency of the candidate.
     ///
@@ -425,6 +433,7 @@ private:
   std::unique_ptr<DominatorTree> ScrubbedDT;
   std::unique_ptr<AssumptionCache> ScrubbedAC;
   DenseMap<const Instruction *, bool> ScrubbedDisjointCache;
+  mutable unsigned NumSCEVDiffs = 0;
 
   // Map from SCEV to instructions that represent the value,
   // instructions are sorted in depth-first order.
@@ -653,6 +662,25 @@ static void unifyBitWidth(APInt &A, APInt &B) {
     B = B.sext(A.getBitWidth());
 }
 
+// Cap on the combined SCEV expression size for which SLSR will compute a
+// Base/StrideDelta difference. getMinusSCEV on huge SCEVs (GPU kernels with
+// fully unrolled addressing routinely produce them) is prohibitively expensive
+// (SCEV FoldingSet uniquing churn) and almost never yields a delta that folds
+// into an addressing mode, so skip it. Typical addressing SCEVs are a handful
+// of nodes; this only bites on pathological ones.
+static const unsigned MaxSCEVDifferenceSize = 64;
+
+// Cap on the number of Base/StrideDelta SCEV differences computed per function.
+// The candidate-basis search is quadratic, and huge functions (GPU kernels with
+// fully unrolled addressing) can otherwise burn millions of getMinusSCEV calls
+// churning the SCEV FoldingSet. Pairs are visited closest-first, so capping
+// keeps the most valuable (closest) pairs. Past the budget, candidates fall
+// back to the cheap IndexDelta (APInt) search, mirroring the pre-rewrite SLSR
+// which had no Base/StrideDelta SCEV search at all.
+static cl::opt<unsigned>
+    MaxSCEVDifferences("slsr-max-scev-differences", cl::init(4096),
+                       cl::desc("Max candidate-basis SCEV differences per function"));
+
 Value *StraightLineStrengthReduce::getDelta(const Candidate &C,
                                             const Candidate &Basis,
                                             Candidate::DKind K) const {
@@ -668,6 +696,13 @@ Value *StraightLineStrengthReduce::getDelta(const Candidate &C,
     const SCEV *BasisPart =
         (K == Candidate::BaseDelta) ? Basis.Base : Basis.StrideSCEV;
     const SCEV *CandPart = (K == Candidate::BaseDelta) ? C.Base : C.StrideSCEV;
+    if (CandPart->getExpressionSize() + BasisPart->getExpressionSize() >
+        MaxSCEVDifferenceSize)
+      return nullptr;
+    if (NumSCEVDiffs >= MaxSCEVDifferences)
+      return nullptr;
+    ++NumSCEVDiffs;
+    ++NumSCEVCandidateBasisDifferences;
     const SCEV *Diff = SE->getMinusSCEV(CandPart, BasisPart);
     return getNearestValueOfSCEV(Diff, C.Ins);
   }
@@ -786,12 +821,7 @@ bool StraightLineStrengthReduce::canReuseInstruction(
 bool StraightLineStrengthReduce::candidatePredicate(Candidate *Basis,
                                                     Candidate &C,
                                                     Candidate::DKind K) {
-  SmallVector<Instruction *> DropPoisonGeneratingInsts;
-  // Ensure the IR of Basis->Ins is not more poisonous than its SCEV.
-  if (!isSimilar(C, *Basis, K) ||
-      (EnablePoisonReuseGuard &&
-       !canReuseInstruction(SE->getSCEV(Basis->Ins), Basis->Ins,
-                            DropPoisonGeneratingInsts)))
+  if (!isSimilar(C, *Basis, K))
     return false;
 
   assert(DT->dominates(Basis->Ins, C.Ins));
@@ -808,12 +838,6 @@ bool StraightLineStrengthReduce::candidatePredicate(Candidate *Basis,
   if (K == Candidate::IndexDelta &&
       !C.isProfitableRewrite(*Delta, Candidate::IndexDelta))
     return false;
-
-  // If there is a Delta that we can reuse Basis to rewrite C,
-  // clean up DropPoisonGeneratingInsts returned by successful
-  // canReuseInstruction().
-  for (Instruction *I : DropPoisonGeneratingInsts)
-    I->dropPoisonGeneratingAnnotations();
 
   // Record delta if none has been found yet, or the new delta is
   // a constant that is better than the existing delta.
@@ -945,6 +969,9 @@ auto StraightLineStrengthReduce::compressPath(Candidate &C,
     if (!isSimilar(C, *NextRoot, CurrKind))
       break;
 
+    if (CandPart->getExpressionSize() + BasisPart->getExpressionSize() >
+        MaxSCEVDifferenceSize)
+      break;
     if (auto DeltaVal =
             dyn_cast<SCEVConstant>(SE->getMinusSCEV(CandPart, BasisPart))) {
       Root = NextRoot;
@@ -1085,7 +1112,14 @@ void StraightLineStrengthReduce::allocateCandidatesAndFindBasis(
   LLVM_DEBUG(dbgs() << "Allocated Candidate: " << C << "\n");
   Candidates.push_back(C);
   RewriteCandidates[C.Ins].push_back(&Candidates.back());
-  CandidateDict.add(Candidates.back());
+  // Only add to the dict if this instruction is safe to reuse as a basis. By
+  // doing this early we avoid calling canReuseInstruction repeatedly for the
+  // same instruction. The DropList is stored on the Candidate so the flags can
+  // be dropped only if this candidate is used by an executed rewrite.
+  if (!EnablePoisonReuseGuard ||
+      canReuseInstruction(SE->getSCEV(I), I, Candidates.back().DropList)) {
+    CandidateDict.add(Candidates.back());
+  }
 }
 
 void StraightLineStrengthReduce::allocateCandidatesAndFindBasis(
@@ -1378,6 +1412,13 @@ void StraightLineStrengthReduce::rewriteCandidate(const Candidate &C) {
     };
     Reduced->takeName(C.Ins);
   }
+  // Reusing Basis is only valid once its poison-generating annotations are
+  // dropped, so do it here rather than while searching for a basis: a basis
+  // that is only considered, or that path compression later replaces, keeps
+  // its flags. Basis is whichever candidate was finally selected, so this also
+  // covers a basis picked by compressPath.
+  for (Instruction *I : Basis.DropList)
+    I->dropPoisonGeneratingAnnotations();
   C.Ins->replaceAllUsesWith(Reduced);
   DeadInstructions.push_back(C.Ins);
 }
