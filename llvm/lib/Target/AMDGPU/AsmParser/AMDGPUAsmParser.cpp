@@ -4894,6 +4894,22 @@ bool AMDGPUAsmParser::validateOpSel(const MCInst &Inst) {
       return false;
   }
 
+  // gfx950 v_pk_add/mul/fma_f32 have several invalid op_sel encodings
+  if (getFeatureBits()[AMDGPU::FeatureGFX950Insts] &&
+      (Opc == AMDGPU::V_PK_ADD_F32_vi || Opc == AMDGPU::V_PK_MUL_F32_vi ||
+       Opc == AMDGPU::V_PK_FMA_F32_vi)) {
+    int OpSelIdx = AMDGPU::getNamedOperandIdx(Opc, AMDGPU::OpName::op_sel);
+    unsigned OpSel = Inst.getOperand(OpSelIdx).getImm();
+
+    // op_sel[2:1] == 2'b01, 2'b10, or 2'b11 for v_pk_fma.
+    if (Opc == AMDGPU::V_PK_FMA_F32_vi &&
+        (((OpSel >> 1) & 1) || ((OpSel >> 2) & 1)))
+      return false;
+    // op_sel[1:0] == 2'b10 for v_pk_add/mul_f32.
+    else if ((OpSel & 3) == 2)
+      return false;
+  }
+
   if (isGFX940() && SIInstrFlags::isDOT(MII, Inst)) {
     int OpSelIdx = AMDGPU::getNamedOperandIdx(Opc, AMDGPU::OpName::op_sel);
     if (OpSelIdx != -1) {
