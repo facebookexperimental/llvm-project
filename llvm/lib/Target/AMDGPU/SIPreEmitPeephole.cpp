@@ -28,7 +28,6 @@
 #include "llvm/CodeGen/MachinePostDominators.h"
 #include "llvm/CodeGen/TargetSchedule.h"
 #include "llvm/Support/BranchProbability.h"
-#include "llvm/Support/ErrorHandling.h"
 using namespace llvm;
 
 #define DEBUG_TYPE "si-pre-emit-peephole"
@@ -790,36 +789,28 @@ bool SIPreEmitPeephole::run(MachineFunction &MF, MachineLoopInfo *LoopInfo) {
 
   for (MachineBasicBlock &MBB : MF) {
     if (ST.hasGFX950Insts()) {
-      // gfx950 v_pk_{add,mul,fma}_f32 have invalid op_sel encodings
-      // (llvm/llvm-project#231506): op_sel[1:0]==2'b10 for add/mul is fixed
-      // by commuting (a+b == b+a, a*b == b*a, bitwise); any op_sel[2:1] !=
-      // 2'b00 for fma is fixed by unpacking into two scalar ops.
-      for (MachineInstr &MI : make_early_inc_range(MBB)) {
-        unsigned Opc = MI.getOpcode();
-        if (Opc == AMDGPU::V_PK_ADD_F32 || Opc == AMDGPU::V_PK_MUL_F32) {
-          const auto *Src0Mods =
-              TII->getNamedOperand(MI, AMDGPU::OpName::src0_modifiers);
-          const auto *Src1Mods =
-              TII->getNamedOperand(MI, AMDGPU::OpName::src1_modifiers);
-          if ((Src1Mods->getImm() & SISrcMods::OP_SEL_0) == 0 ||
-              (Src0Mods->getImm() & SISrcMods::OP_SEL_0) != 0)
-            continue;
-          Changed |= TII->commuteInstruction(MI, /*NewMI=*/false) != nullptr;
-        } else if (Opc == AMDGPU::V_PK_FMA_F32) {
-          const auto *Src1Mods =
-              TII->getNamedOperand(MI, AMDGPU::OpName::src1_modifiers);
-          const auto *Src2Mods =
-              TII->getNamedOperand(MI, AMDGPU::OpName::src2_modifiers);
-          if ((Src1Mods->getImm() & SISrcMods::OP_SEL_0) == 0 &&
-              (Src2Mods->getImm() & SISrcMods::OP_SEL_0) == 0)
-            continue;
-          if (canUnpackingClobberRegister(MI))
-            report_fatal_error("gfx950 v_pk_fma_f32 invalid op_sel cannot be "
-                               "unpacked without clobbering its high-lane "
-                               "source");
-          performF32Unpacking(MI);
-          Changed = true;
-        }
+      for (MachineInstr &MI : MBB) {
+        if (MI.getOpcode() != AMDGPU::V_PK_MUL_F32)
+          continue;
+        const auto *Src0Mods =
+            TII->getNamedOperand(MI, AMDGPU::OpName::src0_modifiers);
+        const auto *Src1Mods =
+            TII->getNamedOperand(MI, AMDGPU::OpName::src1_modifiers);
+        // On gfx950, a V_PK_MUL_F32 whose source 1 selects the high DWORD
+        // for the low result lane (OP_SEL_0 set on source 1) can produce
+        // incorrect results in/around MFMA sequences, even beyond the
+        // modeled dependency latency. Canonicalize by commuting whenever
+        // the old source 0 selects low for the low lane: the commuted
+        // source 1 (old source 0) then selects low and is unaffected.
+        // This generalizes the (OP_SEL_1, OP_SEL_0|OP_SEL_1) case: the
+        // (0, OP_SEL_0) form fails the same way on hardware (it is the
+        // inline-asm reproducer's failing shape) and commutes to the
+        // passing (OP_SEL_0, 0) shape.
+        if ((Src1Mods->getImm() & SISrcMods::OP_SEL_0) == 0 ||
+            (Src0Mods->getImm() & SISrcMods::OP_SEL_0) != 0)
+          continue;
+
+        Changed |= TII->commuteInstruction(MI, /*NewMI=*/false) != nullptr;
       }
     }
 
