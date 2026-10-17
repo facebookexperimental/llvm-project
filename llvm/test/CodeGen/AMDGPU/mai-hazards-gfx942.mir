@@ -2512,3 +2512,150 @@ body:             |
     $agpr0_agpr1_agpr2_agpr3_agpr4_agpr5_agpr6_agpr7_agpr8_agpr9_agpr10_agpr11_agpr12_agpr13_agpr14_agpr15_agpr16_agpr17_agpr18_agpr19_agpr20_agpr21_agpr22_agpr23_agpr24_agpr25_agpr26_agpr27_agpr28_agpr29_agpr30_agpr31 = V_MFMA_F32_32X32X4F16_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $agpr0_agpr1_agpr2_agpr3_agpr4_agpr5_agpr6_agpr7_agpr8_agpr9_agpr10_agpr11_agpr12_agpr13_agpr14_agpr15_agpr16_agpr17_agpr18_agpr19_agpr20_agpr21_agpr22_agpr23_agpr24_agpr25_agpr26_agpr27_agpr28_agpr29_agpr30_agpr31, 0, 0, 0, implicit $mode, implicit $exec
     $agpr2_agpr3_agpr4_agpr5 = V_SMFMAC_F32_16X16X32_F16_e64 $vgpr0_vgpr1, $vgpr2_vgpr3_vgpr4_vgpr5, $vgpr32, 0, 0, $agpr2_agpr3_agpr4_agpr5, implicit $mode, implicit $exec
 ...
+
+# Preserve the 19-state gfx942 contract at the same boundary.
+# gfx950 requires one more state for this 16-pass XDL operation.
+---
+name: xdl_valu_read_horizon_gap18
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0, $vgpr1, $vgpr2, $vgpr3, $vgpr4, $vgpr5, $vgpr6, $vgpr7, $vgpr8, $vgpr9, $vgpr10, $vgpr11, $vgpr12, $vgpr13, $vgpr14, $vgpr15, $vgpr16, $vgpr17, $vgpr18, $vgpr19, $vgpr20, $vgpr21, $vgpr22, $vgpr23, $vgpr24, $vgpr25, $vgpr26, $vgpr27, $vgpr28, $vgpr29, $vgpr30, $vgpr31, $vgpr64, $vgpr65, $vgpr66, $vgpr67, $vgpr68, $vgpr69, $vgpr70, $vgpr71, $vgpr72, $vgpr73, $vgpr74, $vgpr75, $vgpr76, $vgpr77, $vgpr78, $vgpr79, $vgpr80, $vgpr81, $vgpr82, $vgpr83, $vgpr84, $vgpr85, $vgpr86, $vgpr87, $vgpr88, $vgpr89, $vgpr90, $vgpr91, $vgpr92, $vgpr93, $vgpr94, $vgpr95, $vgpr126, $vgpr127, $vgpr128, $vgpr129
+
+    ; GCN-LABEL: name: xdl_valu_read_horizon_gap18
+    ; GCN: $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 15
+    ; GCN-NEXT: $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 0
+    ; GFX942-NEXT: S_NOP 0
+    ; GFX942-NEXT: $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    ; GFX950-NEXT: S_NOP 1
+    ; GFX950-NEXT: $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    ; GCN-NEXT: S_ENDPGM 0
+
+    $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 15
+    $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 0
+    $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    S_ENDPGM 0
+...
+---
+name: xdl_valu_read_horizon_gap19
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0, $vgpr1, $vgpr2, $vgpr3, $vgpr4, $vgpr5, $vgpr6, $vgpr7, $vgpr8, $vgpr9, $vgpr10, $vgpr11, $vgpr12, $vgpr13, $vgpr14, $vgpr15, $vgpr16, $vgpr17, $vgpr18, $vgpr19, $vgpr20, $vgpr21, $vgpr22, $vgpr23, $vgpr24, $vgpr25, $vgpr26, $vgpr27, $vgpr28, $vgpr29, $vgpr30, $vgpr31, $vgpr64, $vgpr65, $vgpr66, $vgpr67, $vgpr68, $vgpr69, $vgpr70, $vgpr71, $vgpr72, $vgpr73, $vgpr74, $vgpr75, $vgpr76, $vgpr77, $vgpr78, $vgpr79, $vgpr80, $vgpr81, $vgpr82, $vgpr83, $vgpr84, $vgpr85, $vgpr86, $vgpr87, $vgpr88, $vgpr89, $vgpr90, $vgpr91, $vgpr92, $vgpr93, $vgpr94, $vgpr95, $vgpr126, $vgpr127, $vgpr128, $vgpr129
+
+    ; GCN-LABEL: name: xdl_valu_read_horizon_gap19
+    ; GCN: $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 15
+    ; GCN-NEXT: $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 1
+    ; GFX942-NEXT: $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    ; GFX950-NEXT: S_NOP 0
+    ; GFX950-NEXT: $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    ; GCN-NEXT: S_ENDPGM 0
+
+    $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 15
+    $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 1
+    $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    S_ENDPGM 0
+...
+---
+name: xdl_valu_read_horizon_gap20
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0, $vgpr1, $vgpr2, $vgpr3, $vgpr4, $vgpr5, $vgpr6, $vgpr7, $vgpr8, $vgpr9, $vgpr10, $vgpr11, $vgpr12, $vgpr13, $vgpr14, $vgpr15, $vgpr16, $vgpr17, $vgpr18, $vgpr19, $vgpr20, $vgpr21, $vgpr22, $vgpr23, $vgpr24, $vgpr25, $vgpr26, $vgpr27, $vgpr28, $vgpr29, $vgpr30, $vgpr31, $vgpr64, $vgpr65, $vgpr66, $vgpr67, $vgpr68, $vgpr69, $vgpr70, $vgpr71, $vgpr72, $vgpr73, $vgpr74, $vgpr75, $vgpr76, $vgpr77, $vgpr78, $vgpr79, $vgpr80, $vgpr81, $vgpr82, $vgpr83, $vgpr84, $vgpr85, $vgpr86, $vgpr87, $vgpr88, $vgpr89, $vgpr90, $vgpr91, $vgpr92, $vgpr93, $vgpr94, $vgpr95, $vgpr126, $vgpr127, $vgpr128, $vgpr129
+
+    ; GCN-LABEL: name: xdl_valu_read_horizon_gap20
+    ; GCN: $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 15
+    ; GCN-NEXT: $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 2
+    ; GFX942-NEXT: $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    ; GFX950-NEXT: $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    ; GCN-NEXT: S_ENDPGM 0
+
+    $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 15
+    $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 2
+    $vgpr48 = V_MOV_B32_e32 $vgpr5, implicit $exec
+    S_ENDPGM 0
+...
+---
+name: xdl_valu_write_horizon_gap18
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0, $vgpr1, $vgpr2, $vgpr3, $vgpr4, $vgpr5, $vgpr6, $vgpr7, $vgpr8, $vgpr9, $vgpr10, $vgpr11, $vgpr12, $vgpr13, $vgpr14, $vgpr15, $vgpr16, $vgpr17, $vgpr18, $vgpr19, $vgpr20, $vgpr21, $vgpr22, $vgpr23, $vgpr24, $vgpr25, $vgpr26, $vgpr27, $vgpr28, $vgpr29, $vgpr30, $vgpr31, $vgpr64, $vgpr65, $vgpr66, $vgpr67, $vgpr68, $vgpr69, $vgpr70, $vgpr71, $vgpr72, $vgpr73, $vgpr74, $vgpr75, $vgpr76, $vgpr77, $vgpr78, $vgpr79, $vgpr80, $vgpr81, $vgpr82, $vgpr83, $vgpr84, $vgpr85, $vgpr86, $vgpr87, $vgpr88, $vgpr89, $vgpr90, $vgpr91, $vgpr92, $vgpr93, $vgpr94, $vgpr95, $vgpr126, $vgpr127, $vgpr128, $vgpr129
+
+    ; GCN-LABEL: name: xdl_valu_write_horizon_gap18
+    ; GCN: $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 15
+    ; GCN-NEXT: $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 0
+    ; GFX942-NEXT: S_NOP 0
+    ; GFX942-NEXT: $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    ; GFX950-NEXT: S_NOP 1
+    ; GFX950-NEXT: $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    ; GCN-NEXT: S_ENDPGM 0
+
+    $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 15
+    $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 0
+    $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    S_ENDPGM 0
+...
+---
+name: xdl_valu_write_horizon_gap19
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0, $vgpr1, $vgpr2, $vgpr3, $vgpr4, $vgpr5, $vgpr6, $vgpr7, $vgpr8, $vgpr9, $vgpr10, $vgpr11, $vgpr12, $vgpr13, $vgpr14, $vgpr15, $vgpr16, $vgpr17, $vgpr18, $vgpr19, $vgpr20, $vgpr21, $vgpr22, $vgpr23, $vgpr24, $vgpr25, $vgpr26, $vgpr27, $vgpr28, $vgpr29, $vgpr30, $vgpr31, $vgpr64, $vgpr65, $vgpr66, $vgpr67, $vgpr68, $vgpr69, $vgpr70, $vgpr71, $vgpr72, $vgpr73, $vgpr74, $vgpr75, $vgpr76, $vgpr77, $vgpr78, $vgpr79, $vgpr80, $vgpr81, $vgpr82, $vgpr83, $vgpr84, $vgpr85, $vgpr86, $vgpr87, $vgpr88, $vgpr89, $vgpr90, $vgpr91, $vgpr92, $vgpr93, $vgpr94, $vgpr95, $vgpr126, $vgpr127, $vgpr128, $vgpr129
+
+    ; GCN-LABEL: name: xdl_valu_write_horizon_gap19
+    ; GCN: $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 15
+    ; GCN-NEXT: $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 1
+    ; GFX942-NEXT: $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    ; GFX950-NEXT: S_NOP 0
+    ; GFX950-NEXT: $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    ; GCN-NEXT: S_ENDPGM 0
+
+    $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 15
+    $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 1
+    $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    S_ENDPGM 0
+...
+---
+name: xdl_valu_write_horizon_gap20
+tracksRegLiveness: true
+body: |
+  bb.0:
+    liveins: $vgpr0, $vgpr1, $vgpr2, $vgpr3, $vgpr4, $vgpr5, $vgpr6, $vgpr7, $vgpr8, $vgpr9, $vgpr10, $vgpr11, $vgpr12, $vgpr13, $vgpr14, $vgpr15, $vgpr16, $vgpr17, $vgpr18, $vgpr19, $vgpr20, $vgpr21, $vgpr22, $vgpr23, $vgpr24, $vgpr25, $vgpr26, $vgpr27, $vgpr28, $vgpr29, $vgpr30, $vgpr31, $vgpr64, $vgpr65, $vgpr66, $vgpr67, $vgpr68, $vgpr69, $vgpr70, $vgpr71, $vgpr72, $vgpr73, $vgpr74, $vgpr75, $vgpr76, $vgpr77, $vgpr78, $vgpr79, $vgpr80, $vgpr81, $vgpr82, $vgpr83, $vgpr84, $vgpr85, $vgpr86, $vgpr87, $vgpr88, $vgpr89, $vgpr90, $vgpr91, $vgpr92, $vgpr93, $vgpr94, $vgpr95, $vgpr126, $vgpr127, $vgpr128, $vgpr129
+
+    ; GCN-LABEL: name: xdl_valu_write_horizon_gap20
+    ; GCN: $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 15
+    ; GCN-NEXT: $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    ; GCN-NEXT: S_NOP 2
+    ; GFX942-NEXT: $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    ; GFX950-NEXT: $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    ; GCN-NEXT: S_ENDPGM 0
+
+    $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr0_vgpr1_vgpr2_vgpr3_vgpr4_vgpr5_vgpr6_vgpr7_vgpr8_vgpr9_vgpr10_vgpr11_vgpr12_vgpr13_vgpr14_vgpr15_vgpr16_vgpr17_vgpr18_vgpr19_vgpr20_vgpr21_vgpr22_vgpr23_vgpr24_vgpr25_vgpr26_vgpr27_vgpr28_vgpr29_vgpr30_vgpr31, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 15
+    $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95 = V_MFMA_F32_32X32X4F16_vgprcd_e64 $vgpr126_vgpr127, $vgpr128_vgpr129, $vgpr64_vgpr65_vgpr66_vgpr67_vgpr68_vgpr69_vgpr70_vgpr71_vgpr72_vgpr73_vgpr74_vgpr75_vgpr76_vgpr77_vgpr78_vgpr79_vgpr80_vgpr81_vgpr82_vgpr83_vgpr84_vgpr85_vgpr86_vgpr87_vgpr88_vgpr89_vgpr90_vgpr91_vgpr92_vgpr93_vgpr94_vgpr95, 0, 0, 0, implicit $mode, implicit $exec
+    S_NOP 2
+    $vgpr5 = V_MOV_B32_e32 1, implicit $exec
+    S_ENDPGM 0
+...
