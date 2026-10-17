@@ -78,6 +78,9 @@ GCNHazardRecognizer::GCNHazardRecognizer(const MachineFunction &MF,
       TRI(TII.getRegisterInfo()), TSchedModel(TII.getSchedModel()), MLI(MLI),
       ClauseUses(TRI.getNumRegUnits()), ClauseDefs(TRI.getNumRegUnits()) {
   MaxLookAhead = MF.getRegInfo().isPhysRegUsed(AMDGPU::AGPR0) ? 19 : 5;
+  // Keep the gfx950 history large enough for its 20-state XDL hazards.
+  if (ST.hasGFX950Insts())
+    MaxLookAhead = 20;
   RunLdsBranchVmemWARHazardFixup = shouldRunLdsBranchVmemWARHazardFixup(MF, ST);
 }
 
@@ -2864,7 +2867,7 @@ int GCNHazardRecognizer::checkMAIHazards90A(MachineInstr *MI) const {
     const int GFX950_DMFMA16x16WritesVGPROverlappedMFMASrcABWaitStates = 19;
     const int DMFMA4x4WritesVGPRFullSrcCWaitStates = 4;
     const int GFX940_SMFMA4x4WritesVGPRFullSrcCWaitStates = 2;
-    const int MaxWaitStates = 19;
+    const int MaxWaitStates = ST.hasGFX950Insts() ? 20 : 19;
 
     if (!Use.isReg())
       continue;
@@ -3217,7 +3220,7 @@ int GCNHazardRecognizer::checkMAIVALUHazards(MachineInstr *MI) const {
     const int DotWriteSameDotReadSrcAB = 3;
     const int DotWriteDifferentVALURead = 3;
     const int DMFMABetweenVALUWriteVMEMRead = 2;
-    const int MaxWaitStates = 19;
+    const int MaxWaitStates = ST.hasGFX950Insts() ? 20 : 19;
 
     for (const MachineOperand &Use : MI->explicit_uses()) {
       if (!Use.isReg())
@@ -3340,7 +3343,7 @@ int GCNHazardRecognizer::checkMAIVALUHazards(MachineInstr *MI) const {
     const int DMFMA4x4WriteVgprVALUWriteWaitStates = 6;
     const int DMFMA16x16WriteVgprVALUWriteWaitStates = 11;
     const int DotWriteDifferentVALUWrite = 3;
-    const int MaxWaitStates = 19;
+    const int MaxWaitStates = ST.hasGFX950Insts() ? 20 : 19;
     const int MaxWarWaitStates = 15;
 
     Reg = Def.getReg();
