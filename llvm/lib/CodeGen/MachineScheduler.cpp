@@ -4227,6 +4227,32 @@ SUnit *GenericScheduler::pickNode(bool &IsTopNode) {
   return SU;
 }
 
+/// Clear potentially-stale read-undef flags on subregister defs of VRegs in
+/// MI, then re-add the ones still valid according to LIS. Instructions
+/// without an affected def are left untouched. The clear must come first
+/// because adjustLaneLiveness only adds flags; the re-add avoids introducing
+/// reads of undefined lanes.
+static void recomputeReadUndefFlags(MachineInstr &MI, ArrayRef<Register> VRegs,
+                                    LiveIntervals &LIS,
+                                    const TargetRegisterInfo &TRI) {
+  bool HasAffectedDef = false;
+  for (MachineOperand &MO : MI.all_defs()) {
+    if (!MO.getReg().isVirtual() || MO.getSubReg() == 0 ||
+        !llvm::is_contained(VRegs, MO.getReg()))
+      continue;
+    MO.setIsUndef(false);
+    HasAffectedDef = true;
+  }
+  if (!HasAffectedDef)
+    return;
+
+  const MachineRegisterInfo &MRI = MI.getMF()->getRegInfo();
+  RegisterOperands RegOpers;
+  RegOpers.collect(MI, TRI, MRI, /*TrackLaneMasks=*/true,
+                   /*IgnoreDead=*/false);
+  RegOpers.adjustLaneLiveness(LIS, MRI, MI);
+}
+
 void GenericScheduler::reschedulePhysReg(SUnit *SU, bool isTop) {
   MachineBasicBlock::iterator InsertPos = SU->getInstr();
   if (!isTop)
@@ -4246,7 +4272,45 @@ void GenericScheduler::reschedulePhysReg(SUnit *SU, bool isTop) {
       continue;
     LLVM_DEBUG(dbgs() << "  Rescheduling physreg copy ";
                DAG->dumpNode(*Dep.getSUnit()));
+    // Moving a copy past subregister defs can leave stale read-undef flags,
+    // dropping true dependencies in a later DAG build. Recompute them from
+    // LiveIntervals after the move. Only vreg copies need this, and only when
+    // lane masks are tracked.
+    LiveIntervals *LIS = DAG->getLIS();
+    SmallVector<Register, 8> CopyVRegs;
+    if (LIS && DAG->hasVRegLiveness() && shouldTrackLaneMasks())
+      for (const MachineOperand &MO : Copy->operands())
+        if (MO.isReg() && MO.getReg().isVirtual())
+          CopyVRegs.push_back(MO.getReg());
+    bool FixUndef = !CopyVRegs.empty();
+
+    // Remember the old location to limit the fixup below to the range moved.
+    SlotIndex OldIdx;
+    MachineBasicBlock::iterator OldNext;
+    if (FixUndef) {
+      OldIdx = LIS->getInstructionIndex(*Copy);
+      OldNext = std::next(Copy->getIterator());
+    }
+
     DAG->moveInstruction(Copy, InsertPos);
+    if (!FixUndef)
+      continue;
+
+    // Fix up the copy itself and everything it moved past.
+    recomputeReadUndefFlags(*Copy, CopyVRegs, *LIS, *TRI);
+    MachineBasicBlock::iterator NewIt = Copy->getIterator();
+    SlotIndex NewIdx = LIS->getInstructionIndex(*Copy);
+    MachineBasicBlock::iterator FixBegin = NewIt, FixEnd = NewIt;
+    if (NewIdx < OldIdx) {
+      FixBegin = std::next(NewIt);
+      FixEnd = OldNext;
+    } else if (OldIdx < NewIdx) {
+      FixBegin = OldNext;
+      FixEnd = NewIt;
+    }
+    for (auto I = FixBegin; I != FixEnd; ++I)
+      if (!I->isDebugInstr())
+        recomputeReadUndefFlags(*I, CopyVRegs, *LIS, *TRI);
   }
 }
 
