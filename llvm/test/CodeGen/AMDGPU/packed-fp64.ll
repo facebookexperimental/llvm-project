@@ -2389,9 +2389,10 @@ define amdgpu_kernel void @fneg_v32f64_vec(ptr addrspace(1) %a) {
 ; GFX1251-SDAG-NEXT:    v_pk_add_f64 v[48:51], v[48:51], 0 neg_lo:[1,1] neg_hi:[1,1]
 ; GFX1251-SDAG-NEXT:    s_wait_loadcnt 0x0
 ; GFX1251-SDAG-NEXT:    v_pk_add_f64 v[52:55], v[52:55], 0 neg_lo:[1,1] neg_hi:[1,1]
-; GFX1251-SDAG-NEXT:    s_clause 0x3
+; GFX1251-SDAG-NEXT:    s_clause 0x1
 ; GFX1251-SDAG-NEXT:    global_store_b128 v56, v[0:3], s[0:1] offset:96
 ; GFX1251-SDAG-NEXT:    global_store_b128 v56, v[4:7], s[0:1] offset:112
+; GFX1251-SDAG-NEXT:    s_clause 0x1
 ; GFX1251-SDAG-NEXT:    global_load_b128 v[0:3], v56, s[0:1] offset:128
 ; GFX1251-SDAG-NEXT:    global_load_b128 v[4:7], v56, s[0:1] offset:144
 ; GFX1251-SDAG-NEXT:    s_wait_loadcnt 0x1
@@ -2468,7 +2469,6 @@ define amdgpu_kernel void @fneg_v32f64_vec(ptr addrspace(1) %a) {
 ; GFX1251-GISEL-NEXT:    s_wait_loadcnt 0x3
 ; GFX1251-GISEL-NEXT:    v_xor_b32_e32 v41, 0x80000000, v41
 ; GFX1251-GISEL-NEXT:    v_xor_b32_e32 v43, 0x80000000, v43
-; GFX1251-GISEL-NEXT:    s_clause 0x3
 ; GFX1251-GISEL-NEXT:    global_store_b128 v56, v[20:23], s[0:1]
 ; GFX1251-GISEL-NEXT:    global_load_b128 v[20:23], v56, s[0:1] offset:224
 ; GFX1251-GISEL-NEXT:    global_store_b128 v56, v[16:19], s[0:1] offset:16
