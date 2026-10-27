@@ -1,9 +1,0 @@
-add_lldb_unittest(ABIRISCVTests
-  ABIRISCVTest.cpp
-  LINK_COMPONENTS
-    Support
-    RISCV
-  LINK_LIBS
-    lldbTarget
-    lldbPluginABIRISCV
-  )

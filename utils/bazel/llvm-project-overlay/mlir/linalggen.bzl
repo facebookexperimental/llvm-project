@@ -19,17 +19,14 @@ def genlinalg(name, linalggen, src, linalg_outs):
         produced.
     """
 
-    for (opts, out) in linalg_outs:
+    for opts, out in linalg_outs:
         rule_suffix = "_".join(opts.replace("-", "_").replace("=", "_").split(" "))
         run_binary(
             name = "%s_%s_genrule" % (name, rule_suffix),
             srcs = [src],
             outs = [out],
             # `$@` in opts names the output, as it would in a genrule.
-            args = [
-                opt.replace("$@", "$(execpath %s)" % out)
-                for opt in opts.split(" ")
-            ] + ["$(execpath %s)" % src],
+            args = [opt.replace("$@", "$(execpath %s)" % out) for opt in opts.split(" ")] + ["$(execpath %s)" % src],
             tool = linalggen,
         )
 

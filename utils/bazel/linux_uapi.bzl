@@ -22,15 +22,16 @@ cc_library(
 def _setup_from_system(repository_ctx, include_dir):
     """Sets up the repository from a user-provided include directory."""
     if not include_dir.startswith("/"):
-        fail("{} must be absolute, was {}".format(
-            _SYSTEM_HEADERS_PATH_ENV_VAR,
-            include_dir,
-        ))
+        fail(
+            "{} must be absolute, was {}".format(
+                _SYSTEM_HEADERS_PATH_ENV_VAR,
+                include_dir,
+            )
+        )
 
     if not repository_ctx.path(include_dir + "/linux").exists:
         fail(
-            "{} does not contain Linux UAPI headers (no linux/ subdirectory)"
-                .format(include_dir),
+            "{} does not contain Linux UAPI headers (no linux/ subdirectory)".format(include_dir),
         )
 
     repository_ctx.symlink(include_dir, "include")

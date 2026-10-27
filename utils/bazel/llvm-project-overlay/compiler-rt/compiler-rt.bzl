@@ -65,11 +65,7 @@ def _filtered_builtins_srcs_impl(ctx):
             filtered_files.append(f)
 
     # Remove any textual sources from this list.
-    filtered_files = [
-        f
-        for f in filtered_files
-        if f.extension not in ["inc", "def"]
-    ]
+    filtered_files = [f for f in filtered_files if f.extension not in ["inc", "def"]]
 
     return [DefaultInfo(files = depset(filtered_files))]
 
@@ -116,11 +112,7 @@ filtered_builtins_srcs = rule(
 def _filtered_builtins_textual_srcs_impl(ctx):
     """Implementation of filter_builtins_textual_srcs rule."""
 
-    filtered_files = [
-        f
-        for f in ctx.files.srcs
-        if f.extension in ["inc", "def"]
-    ]
+    filtered_files = [f for f in ctx.files.srcs if f.extension in ["inc", "def"]]
 
     return [DefaultInfo(files = depset(filtered_files))]
 
