@@ -363,6 +363,10 @@ protected:
   bool ExpandWaitcntProfiling = false;
   const AMDGPU::HardwareLimits &Limits;
 
+  // Soft waitcnts whose erasures are postponed so we can confirm if they're
+  // truly redundant or if they're waiting on a loop-carried dependency.
+  DenseSet<MachineInstr *> DeferredErasures;
+
 public:
   WaitcntGenerator() = delete;
   WaitcntGenerator(const WaitcntGenerator &) = delete;
@@ -397,7 +401,17 @@ public:
   virtual bool
   applyPreexistingWaitcnt(WaitcntBrackets &ScoreBrackets,
                           MachineInstr &OldWaitcntInstr, AMDGPU::Waitcnt &Wait,
-                          MachineBasicBlock::instr_iterator It) const = 0;
+                          MachineBasicBlock::instr_iterator It) = 0;
+
+  bool eraseDeferredWaitcnts() {
+    bool Modified = false;
+    for (MachineInstr *MI : DeferredErasures) {
+      MI->eraseFromParent();
+      Modified = true;
+    }
+    DeferredErasures.clear();
+    return Modified;
+  }
 
   // Transform a soft waitcnt into a normal one.
   bool promoteSoftWaitCnt(MachineInstr *Waitcnt) const;
@@ -450,10 +464,10 @@ class WaitcntGeneratorPreGFX12 final : public WaitcntGenerator {
 
 public:
   using WaitcntGenerator::WaitcntGenerator;
-  bool
-  applyPreexistingWaitcnt(WaitcntBrackets &ScoreBrackets,
-                          MachineInstr &OldWaitcntInstr, AMDGPU::Waitcnt &Wait,
-                          MachineBasicBlock::instr_iterator It) const override;
+  bool applyPreexistingWaitcnt(WaitcntBrackets &ScoreBrackets,
+                               MachineInstr &OldWaitcntInstr,
+                               AMDGPU::Waitcnt &Wait,
+                               MachineBasicBlock::instr_iterator It) override;
 
   bool createNewWaitcnt(MachineBasicBlock &Block,
                         MachineBasicBlock::instr_iterator It,
@@ -494,10 +508,10 @@ public:
                             bool IsExpertMode)
       : WaitcntGenerator(MF, MaxCounter, Limits), IsExpertMode(IsExpertMode) {}
 
-  bool
-  applyPreexistingWaitcnt(WaitcntBrackets &ScoreBrackets,
-                          MachineInstr &OldWaitcntInstr, AMDGPU::Waitcnt &Wait,
-                          MachineBasicBlock::instr_iterator It) const override;
+  bool applyPreexistingWaitcnt(WaitcntBrackets &ScoreBrackets,
+                               MachineInstr &OldWaitcntInstr,
+                               AMDGPU::Waitcnt &Wait,
+                               MachineBasicBlock::instr_iterator It) override;
 
   bool createNewWaitcnt(MachineBasicBlock &Block,
                         MachineBasicBlock::instr_iterator It,
@@ -1856,7 +1870,7 @@ bool WaitcntGenerator::promoteSoftWaitCnt(MachineInstr *Waitcnt) const {
 /// correctness.
 bool WaitcntGeneratorPreGFX12::applyPreexistingWaitcnt(
     WaitcntBrackets &ScoreBrackets, MachineInstr &OldWaitcntInstr,
-    AMDGPU::Waitcnt &Wait, MachineBasicBlock::instr_iterator It) const {
+    AMDGPU::Waitcnt &Wait, MachineBasicBlock::instr_iterator It) {
   assert(isNormalMode(MaxCounter));
 
   bool Modified = false;
@@ -1892,11 +1906,19 @@ bool WaitcntGeneratorPreGFX12::applyPreexistingWaitcnt(
       Wait = Wait.combined(OldWait);
 
       // Merge consecutive waitcnt of the same type by erasing multiples.
-      if (WaitcntInstr || (!Wait.hasWaitExceptStoreCnt() && TrySimplify)) {
+      if (WaitcntInstr) {
+        DeferredErasures.erase(&II);
         II.eraseFromParent();
         Modified = true;
-      } else
+      } else if (!Wait.hasWaitExceptStoreCnt() && TrySimplify) {
+        // Might or might not be redundant, depending on if there's a loop
+        // carried dependency. Stash it away so we can erase it if nothing saves
+        // it.
+        DeferredErasures.insert(&II);
+      } else {
         WaitcntInstr = &II;
+        DeferredErasures.erase(&II);
+      }
     } else if (Opcode == AMDGPU::S_WAITCNT_lds_direct) {
       assert(ST.hasVMemToLDSLoad());
       LLVM_DEBUG(dbgs() << "Processing S_WAITCNT_lds_direct: " << II
@@ -1928,11 +1950,17 @@ bool WaitcntGeneratorPreGFX12::applyPreexistingWaitcnt(
       Wait.set(AMDGPU::STORE_CNT,
                std::min(Wait.get(AMDGPU::STORE_CNT), OldVSCnt));
 
-      if (WaitcntVsCntInstr || (!Wait.hasWaitStoreCnt() && TrySimplify)) {
+      if (WaitcntVsCntInstr) {
+        DeferredErasures.erase(&II);
         II.eraseFromParent();
         Modified = true;
-      } else
+      } else if (!Wait.hasWaitStoreCnt() && TrySimplify) {
+        // Loop-carried dependencies guard, see S_WAITCNT case above.
+        DeferredErasures.insert(&II);
+      } else {
         WaitcntVsCntInstr = &II;
+        DeferredErasures.erase(&II);
+      }
     }
   }
 
@@ -2100,7 +2128,7 @@ WaitcntGeneratorGFX12Plus::getAllZeroWaitcnt(bool IncludeVSCnt) const {
 /// assumes that these preexisting waits are required for correctness.
 bool WaitcntGeneratorGFX12Plus::applyPreexistingWaitcnt(
     WaitcntBrackets &ScoreBrackets, MachineInstr &OldWaitcntInstr,
-    AMDGPU::Waitcnt &Wait, MachineBasicBlock::instr_iterator It) const {
+    AMDGPU::Waitcnt &Wait, MachineBasicBlock::instr_iterator It) {
   assert(!isNormalMode(MaxCounter));
 
   bool Modified = false;
@@ -2319,6 +2347,7 @@ bool WaitcntGeneratorGFX12Plus::applyPreexistingWaitcnt(
       if (!*WI)
         continue;
 
+      DeferredErasures.erase(*WI);
       (*WI)->eraseFromParent();
       *WI = nullptr;
       Modified = true;
@@ -2334,6 +2363,7 @@ bool WaitcntGeneratorGFX12Plus::applyPreexistingWaitcnt(
       Modified |= updateOperandIfDifferent(*WaitInstrs[CT],
                                            AMDGPU::OpName::simm16, NewCnt);
       Modified |= promoteSoftWaitCnt(WaitInstrs[CT]);
+      DeferredErasures.erase(WaitInstrs[CT]);
 
       ScoreBrackets.applyWaitcnt(CT, NewCnt);
       setNoWait(Wait, CT);
@@ -2346,8 +2376,8 @@ bool WaitcntGeneratorGFX12Plus::applyPreexistingWaitcnt(
                               << "Old Instr: " << *It
                               << "New Instr: " << *WaitInstrs[CT] << '\n');
     } else {
-      WaitInstrs[CT]->eraseFromParent();
-      Modified = true;
+      // Defer erasure in case there's a loop-carried dependency.
+      DeferredErasures.insert(WaitInstrs[CT]);
     }
   }
 
@@ -3919,6 +3949,8 @@ bool SIInsertWaitcnts::run() {
       }
     }
   } while (Repeat);
+
+  Modified |= WCG->eraseDeferredWaitcnts();
 
   if (ST.hasScalarStores()) {
     SmallVector<MachineBasicBlock *, 4> EndPgmBlocks;
