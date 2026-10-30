@@ -27,12 +27,8 @@
 #include "AMDGPUHWEvents.h"
 #include "AMDGPUWaitcntUtils.h"
 #include "GCNSubtarget.h"
-#include "MCTargetDesc/AMDGPUMCTargetDesc.h"
 #include "SIMachineFunctionInfo.h"
 #include "Utils/AMDGPUBaseInfo.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/Sequence.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineLoopInfo.h"
@@ -254,7 +250,7 @@ class WaitcntGeneratorPreGFX12 final : public WaitcntGenerator {
   static constexpr const HWEvents
       WaitEventMaskForInstPreGFX12[AMDGPU::NUM_INST_CNTS] = {
           HWEvents::VMEM_READ_ACCESS | HWEvents::VMEM_SAMPLER_READ_ACCESS |
-              HWEvents::VMEM_BVH_READ_ACCESS,
+              HWEvents::VMEM_BVH_READ_ACCESS | HWEvents::VMEM_INV_ACCESS,
           HWEvents::SMEM_ACCESS | HWEvents::LDS_ACCESS | HWEvents::GDS_ACCESS |
               HWEvents::SQ_MESSAGE,
           HWEvents::EXP_GPR_LOCK | HWEvents::GDS_GPR_LOCK |
@@ -298,7 +294,7 @@ protected:
   bool IsExpertMode;
   static constexpr const HWEvents
       WaitEventMaskForInstGFX12Plus[AMDGPU::NUM_INST_CNTS] = {
-          HWEvents::VMEM_READ_ACCESS | HWEvents::GLOBAL_INV_ACCESS,
+          HWEvents::VMEM_READ_ACCESS | HWEvents::VMEM_INV_ACCESS,
           HWEvents::LDS_ACCESS | HWEvents::GDS_ACCESS,
           HWEvents::EXP_GPR_LOCK | HWEvents::GDS_GPR_LOCK |
               HWEvents::VMW_GPR_LOCK | HWEvents::EXP_PARAM_ACCESS |
@@ -570,6 +566,16 @@ public:
                     AMDGPU::Waitcnt &UpdateWait) const;
   void simplifyVmVsrc(const AMDGPU::Waitcnt &CheckWait,
                       AMDGPU::Waitcnt &UpdateWait) const;
+  // GLOBAL_INV/BUFFER_INV increment loadcnt/vmcnt but do not write VGPRs, so
+  // waits that only drain these events can be omitted.
+  void simplifyVmemInvOnlyWait(AMDGPU::Waitcnt &Wait) const {
+    // LOAD_CNT also includes store events on targets without VScnt.
+    HWEvents LoadEvents =
+        PendingEvents & (Context->getWaitEvents(AMDGPU::LOAD_CNT) -
+                         Context->getWaitEvents(AMDGPU::STORE_CNT));
+    if (LoadEvents == HWEvents::VMEM_INV_ACCESS)
+      Wait.clear(AMDGPU::LOAD_CNT);
+  }
 
   void determineWaitForPhysReg(AMDGPU::InstCounterType T, MCPhysReg Reg,
                                AMDGPU::Waitcnt &Wait,
@@ -1460,7 +1466,7 @@ MCPhysReg WaitcntBrackets::determineVGPR16Dependency(const MachineInstr &MI,
   if (!Wait.hasWait())
     return Reg;
 
-  if (Context->TII.isVALU(MI, /*AllowLDSDMA=*/true))
+  if (Context->TII.isVALU(MI, /*AllowLDSDMA=*/false))
     return Reg32;
 
   // If hi/lo16 mixed events
@@ -1593,13 +1599,11 @@ bool WaitcntBrackets::counterOutOfOrder(AMDGPU::InstCounterType T) const {
       Events |= HWEvents::VMEM_READ_ACCESS;
     }
 
-    // GLOBAL_INV completes in-order with other LOAD_CNT events,
-    // so having GLOBAL_INV_ACCESS mixed with other LOAD_CNT
-    // events doesn't cause out-of-order completion.
-    Events -= HWEvents::GLOBAL_INV_ACCESS;
+    // GLOBAL_INV/BUFFER_INV complete in-order with VMEM_READ_ACCESS, so mixing
+    // VMEM_INV_ACCESS with other LOAD_CNT events does not cause out-of-order
+    // completion.
+    Events -= HWEvents::VMEM_INV_ACCESS;
 
-    // Return true only if there are still multiple event types after removing
-    // GLOBAL_INV
     return Events.size() > 1;
   }
 
@@ -1682,8 +1686,10 @@ bool WaitcntGeneratorPreGFX12::applyPreexistingWaitcnt(
     if (Opcode == AMDGPU::S_WAITCNT) {
       unsigned IEnc = II.getOperand(0).getImm();
       AMDGPU::Waitcnt OldWait = AMDGPU::decodeWaitcnt(IV, IEnc);
-      if (TrySimplify)
+      if (TrySimplify) {
         ScoreBrackets.simplifyWaitcnt(OldWait);
+        ScoreBrackets.simplifyVmemInvOnlyWait(OldWait);
+      }
       Wait = Wait.combined(OldWait);
 
       // Merge consecutive waitcnt of the same type by erasing multiples.
@@ -2355,13 +2361,7 @@ bool SIInsertWaitcnts::generateWaitcntInstBefore(
     ReturnInsts.insert(&MI);
     AMDGPU::Waitcnt AllZeroWait =
         WCG->getAllZeroWaitcnt(/*IncludeVSCnt=*/false);
-    // On GFX12+, if LOAD_CNT is pending but no VGPRs are waiting for loads
-    // (e.g., only GLOBAL_INV is pending), we can skip waiting on loadcnt.
-    // GLOBAL_INV increments loadcnt but doesn't write to VGPRs, so there's
-    // no need to wait for it at function boundaries.
-    if (ST.hasExtendedWaitCounts() &&
-        !ScoreBrackets.hasPendingEvent(HWEvents::VMEM_READ_ACCESS))
-      AllZeroWait.set(AMDGPU::LOAD_CNT, ~0u);
+    ScoreBrackets.simplifyVmemInvOnlyWait(AllZeroWait);
     Wait = AllZeroWait;
     break;
   }
@@ -3720,8 +3720,7 @@ bool SIInsertWaitcnts::run() {
              (MF.getFrameInfo().hasCalls() ||
               ST.getOccupancyWithNumVGPRs(
                   TRI.getNumUsedPhysRegs(MRI, AMDGPU::VGPR_32RegClass),
-                  /*IsDynamicVGPR=*/false) <
-                  AMDGPU::IsaInfo::getMaxWavesPerEU(ST))) {
+                  /*IsDynamicVGPR=*/false) < ST.getMaxWavesPerEU())) {
     for (auto [MI, Flag] : EndPgmInsts) {
       if (Flag) {
         if (ST.requiresNopBeforeDeallocVGPRs()) {

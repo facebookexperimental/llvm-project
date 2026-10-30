@@ -954,15 +954,15 @@ DIStringType *DIStringType::getImpl(LLVMContext &Context, unsigned Tag,
                                     Metadata *StringLengthExp,
                                     Metadata *StringLocationExp,
                                     Metadata *SizeInBits, uint32_t AlignInBits,
-                                    unsigned Encoding, StorageType Storage,
-                                    bool ShouldCreate) {
+                                    unsigned Encoding, Metadata *CharType,
+                                    StorageType Storage, bool ShouldCreate) {
   assert(isCanonical(Name) && "Expected canonical MDString");
-  DEFINE_GETIMPL_LOOKUP(DIStringType,
-                        (Tag, Name, StringLength, StringLengthExp,
-                         StringLocationExp, SizeInBits, AlignInBits, Encoding));
-  Metadata *Ops[] = {nullptr,         nullptr,          Name,
-                     SizeInBits,      nullptr,          StringLength,
-                     StringLengthExp, StringLocationExp};
+  DEFINE_GETIMPL_LOOKUP(DIStringType, (Tag, Name, StringLength, StringLengthExp,
+                                       StringLocationExp, SizeInBits,
+                                       AlignInBits, Encoding, CharType));
+  Metadata *Ops[] = {nullptr,         nullptr,           Name,
+                     SizeInBits,      nullptr,           StringLength,
+                     StringLengthExp, StringLocationExp, CharType};
   DEFINE_GETIMPL_STORE(DIStringType, (Tag, AlignInBits, Encoding), Ops);
 }
 DIType *DIDerivedType::getClassType() const {
@@ -2673,6 +2673,21 @@ DIObjCProperty *DIObjCProperty::getImpl(
   DEFINE_GETIMPL_STORE(DIObjCProperty, (Line, Attributes), Ops);
 }
 
+DIProperty::DIProperty(LLVMContext &C, StorageType Storage, unsigned Line,
+                       ArrayRef<Metadata *> Ops)
+    : DINode(C, DIPropertyKind, Storage, dwarf::DW_TAG_property, Ops),
+      Line(Line) {}
+
+DIProperty *DIProperty::getImpl(LLVMContext &Context, MDString *Name,
+                                Metadata *File, unsigned Line, Metadata *Type,
+                                Metadata *BackingStorage, StorageType Storage,
+                                bool ShouldCreate) {
+  assert(isCanonical(Name) && "Expected canonical MDString");
+  DEFINE_GETIMPL_LOOKUP(DIProperty, (Name, File, Line, Type, BackingStorage));
+  Metadata *Ops[] = {Name, File, Type, BackingStorage};
+  DEFINE_GETIMPL_STORE(DIProperty, (Line), Ops);
+}
+
 DIImportedEntity *DIImportedEntity::getImpl(LLVMContext &Context, unsigned Tag,
                                             Metadata *Scope, Metadata *Entity,
                                             Metadata *File, unsigned Line,
@@ -2760,5 +2775,5 @@ void DIArgList::dropAllReferences(bool Untrack) {
   if (Untrack)
     untrack();
   Args.clear();
-  ReplaceableMetadataImpl::resolveAllUses(/* ResolveUsers */ false);
+  ReplaceableUses::resolveAllUses(/* ResolveUsers */ false);
 }

@@ -232,12 +232,11 @@ FailureOr<scf::ForOp> mlir::scf::upliftWhileToForLoop(RewriterBase &rewriter,
   rewriter.setInsertionPoint(term);
   rewriter.replaceOpWithNewOp<scf::YieldOp>(term, newArgs);
 
-  // Compute the induction variable value after loop execution: the first value
-  // that fails the condition, i.e. lb + tripCount * step with
-  // tripCount = max(ceilDiv(ub - lb, step), 0). Clamping at zero covers loops
-  // that never execute (ub <= lb), whose result is the initial value lb.
+  // Compute the induction variable value after loop execution, clamping the
+  // trip count at zero so loops that never execute yield lb.
   rewriter.setInsertionPointAfter(newLoop);
-  Value one, zero;
+  Value one;
+  Value zero;
   if (isa<IndexType>(step.getType())) {
     one = arith::ConstantIndexOp::create(rewriter, loc, 1);
     zero = arith::ConstantIndexOp::create(rewriter, loc, 0);

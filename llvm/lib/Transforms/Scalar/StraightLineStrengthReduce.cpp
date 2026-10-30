@@ -86,8 +86,8 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -228,8 +228,8 @@ public:
     // Points to (Y - X) that will be used to rewrite this candidate.
     Value *Delta = nullptr;
 
-    // List of instructions we need to drop poison generating annotations from.
-    // This is used so we can defer dropping until the candidate is evaluated.
+    // List of instructions whose poison-generating annotations must be dropped
+    // if this candidate is used as the basis of an executed rewrite.
     SmallVector<Instruction *> DropList;
 
     /// Cost model: Evaluate the computational efficiency of the candidate.
@@ -1097,8 +1097,10 @@ auto StraightLineStrengthReduce::pickRewriteCandidate(Instruction *I) const
 static bool isGEPFoldable(GetElementPtrInst *GEP,
                           const TargetTransformInfo *TTI) {
   SmallVector<const Value *, 4> Indices(GEP->indices());
-  return TTI->getGEPCost(GEP->getSourceElementType(), GEP->getPointerOperand(),
-                         Indices) == TargetTransformInfo::TCC_Free;
+  return TTI->getGEPCost(
+             GEP->getSourceElementType(), GEP->getPointerOperand(), Indices,
+             /*CostKind*/ TTI::TargetCostKind::TCK_SizeAndLatency) ==
+         TargetTransformInfo::TCC_Free;
 }
 
 // Returns whether (Base + Index * Stride) can be folded to an addressing mode.
@@ -1155,8 +1157,8 @@ void StraightLineStrengthReduce::allocateCandidatesAndFindBasis(
   RewriteCandidates[C.Ins].push_back(&Candidates.back());
   // Only add to the dict if this instruction is safe to reuse as a basis. By
   // doing this early we avoid calling canReuseInstruction repeatedly for the
-  // same instruction. The DropList is stored on the Candidate so
-  // rewriteCandidate can drop the flags when a rewrite is actually done.
+  // same instruction. The DropList is stored on the Candidate so the flags can
+  // be dropped only if this candidate is used by an executed rewrite.
   if (!EnablePoisonReuseGuard ||
       canReuseInstruction(SE->getSCEV(I), I, Candidates.back().DropList)) {
     CandidateDict.add(Candidates.back());
@@ -1484,7 +1486,6 @@ bool StraightLineStrengthReduce::runOnFunction(Function &F) {
       break;
     }
   }
-
   // Traverse the dominator tree in the depth-first order. This order makes sure
   // all bases of a candidate are in Candidates when we process it.
   for (const auto Node : depth_first(DT))

@@ -19,6 +19,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/TinyPtrVector.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DbgVariableFragmentInfo.h"
@@ -224,6 +225,7 @@ public:
     case DILocalVariableKind:
     case DILabelKind:
     case DIObjCPropertyKind:
+    case DIPropertyKind:
     case DIImportedEntityKind:
     case DIModuleKind:
     case DIGenericSubrangeKind:
@@ -319,6 +321,13 @@ public:
 class DIAssignID : public MDNode {
   friend class LLVMContextImpl;
   friend class MDNode;
+  friend class Instruction;
+  friend class DebugValueUser;
+
+  /// The instructions this ID is attached to and the dbg_assign records that
+  /// refer to it, maintained by Instruction and DebugValueUser.
+  TinyPtrVector<Instruction *> Instrs;
+  TinyPtrVector<DbgVariableRecord *> Records;
 
   DIAssignID(LLVMContext &C, StorageType Storage)
       : MDNode(C, DIAssignIDKind, Storage, {}) {}
@@ -334,9 +343,8 @@ public:
   // This node has no operands to replace.
   void replaceOperandWith(unsigned I, Metadata *New) = delete;
 
-  SmallVector<DbgVariableRecord *> getAllDbgVariableRecordUsers() {
-    return Context.getReplaceableUses()->getAllDbgVariableRecordUsers();
-  }
+  ArrayRef<Instruction *> getInstructions() const { return Instrs; }
+  ArrayRef<DbgVariableRecord *> getRecords() const { return Records; }
 
   static DIAssignID *getDistinct(LLVMContext &Context) {
     return getImpl(Context, Distinct);
@@ -1175,37 +1183,37 @@ class DIStringType : public DIType {
                                StringRef Name, Metadata *StringLength,
                                Metadata *StrLenExp, Metadata *StrLocationExp,
                                uint64_t SizeInBits, uint32_t AlignInBits,
-                               unsigned Encoding, StorageType Storage,
-                               bool ShouldCreate = true) {
+                               unsigned Encoding, Metadata *CharType,
+                               StorageType Storage, bool ShouldCreate = true) {
     auto *SizeInBitsNode = ConstantAsMetadata::get(
         ConstantInt::get(Type::getInt64Ty(Context), SizeInBits));
     return getImpl(Context, Tag, getCanonicalMDString(Context, Name),
                    StringLength, StrLenExp, StrLocationExp, SizeInBitsNode,
-                   AlignInBits, Encoding, Storage, ShouldCreate);
+                   AlignInBits, Encoding, CharType, Storage, ShouldCreate);
   }
   static DIStringType *getImpl(LLVMContext &Context, unsigned Tag,
                                MDString *Name, Metadata *StringLength,
                                Metadata *StrLenExp, Metadata *StrLocationExp,
                                uint64_t SizeInBits, uint32_t AlignInBits,
-                               unsigned Encoding, StorageType Storage,
-                               bool ShouldCreate = true) {
+                               unsigned Encoding, Metadata *CharType,
+                               StorageType Storage, bool ShouldCreate = true) {
     auto *SizeInBitsNode = ConstantAsMetadata::get(
         ConstantInt::get(Type::getInt64Ty(Context), SizeInBits));
     return getImpl(Context, Tag, Name, StringLength, StrLenExp, StrLocationExp,
-                   SizeInBitsNode, AlignInBits, Encoding, Storage,
+                   SizeInBitsNode, AlignInBits, Encoding, CharType, Storage,
                    ShouldCreate);
   }
   LLVM_ABI static DIStringType *
   getImpl(LLVMContext &Context, unsigned Tag, MDString *Name,
           Metadata *StringLength, Metadata *StrLenExp, Metadata *StrLocationExp,
           Metadata *SizeInBits, uint32_t AlignInBits, unsigned Encoding,
-          StorageType Storage, bool ShouldCreate = true);
+          Metadata *CharType, StorageType Storage, bool ShouldCreate = true);
 
   TempDIStringType cloneImpl() const {
     return getTemporary(getContext(), getTag(), getRawName(),
                         getRawStringLength(), getRawStringLengthExp(),
                         getRawStringLocationExp(), getRawSizeInBits(),
-                        getAlignInBits(), getEncoding());
+                        getAlignInBits(), getEncoding(), getRawCharType());
   }
 
 public:
@@ -1213,28 +1221,31 @@ public:
                     (unsigned Tag, StringRef Name, uint64_t SizeInBits,
                      uint32_t AlignInBits),
                     (Tag, Name, nullptr, nullptr, nullptr, SizeInBits,
-                     AlignInBits, 0))
+                     AlignInBits, 0, nullptr))
   DEFINE_MDNODE_GET(DIStringType,
                     (unsigned Tag, MDString *Name, Metadata *StringLength,
                      Metadata *StringLengthExp, Metadata *StringLocationExp,
                      uint64_t SizeInBits, uint32_t AlignInBits,
-                     unsigned Encoding),
+                     unsigned Encoding, Metadata *CharType = nullptr),
                     (Tag, Name, StringLength, StringLengthExp,
-                     StringLocationExp, SizeInBits, AlignInBits, Encoding))
+                     StringLocationExp, SizeInBits, AlignInBits, Encoding,
+                     CharType))
   DEFINE_MDNODE_GET(DIStringType,
                     (unsigned Tag, StringRef Name, Metadata *StringLength,
                      Metadata *StringLengthExp, Metadata *StringLocationExp,
                      uint64_t SizeInBits, uint32_t AlignInBits,
-                     unsigned Encoding),
+                     unsigned Encoding, Metadata *CharType = nullptr),
                     (Tag, Name, StringLength, StringLengthExp,
-                     StringLocationExp, SizeInBits, AlignInBits, Encoding))
+                     StringLocationExp, SizeInBits, AlignInBits, Encoding,
+                     CharType))
   DEFINE_MDNODE_GET(DIStringType,
                     (unsigned Tag, MDString *Name, Metadata *StringLength,
                      Metadata *StringLengthExp, Metadata *StringLocationExp,
                      Metadata *SizeInBits, uint32_t AlignInBits,
-                     unsigned Encoding),
+                     unsigned Encoding, Metadata *CharType = nullptr),
                     (Tag, Name, StringLength, StringLengthExp,
-                     StringLocationExp, SizeInBits, AlignInBits, Encoding))
+                     StringLocationExp, SizeInBits, AlignInBits, Encoding,
+                     CharType))
 
   TempDIStringType clone() const { return cloneImpl(); }
 
@@ -1256,6 +1267,8 @@ public:
 
   unsigned getEncoding() const { return Encoding; }
 
+  DIType *getCharType() const { return cast_or_null<DIType>(getRawCharType()); }
+
   Metadata *getRawStringLength() const { return getOperand(MY_FIRST_OPERAND); }
 
   Metadata *getRawStringLengthExp() const {
@@ -1265,6 +1278,8 @@ public:
   Metadata *getRawStringLocationExp() const {
     return getOperand(MY_FIRST_OPERAND + 2);
   }
+
+  Metadata *getRawCharType() const { return getOperand(MY_FIRST_OPERAND + 3); }
 };
 
 /// Derived types.
@@ -4609,6 +4624,88 @@ public:
   }
 };
 
+/// A property of a class or structure.
+///
+/// An entity that is syntactically accessed like a data member, but whose
+/// access is implemented by invoking a user-defined or compiler-generated
+/// accessor.
+///
+/// Currently only the backing storage is modelled, and it must be a data
+/// member holding the property's storage.
+class DIProperty : public DINode {
+  friend class LLVMContextImpl;
+  friend class MDNode;
+
+  unsigned Line;
+
+  DIProperty(LLVMContext &C, StorageType Storage, unsigned Line,
+             ArrayRef<Metadata *> Ops);
+  ~DIProperty() = default;
+
+  static DIProperty *getImpl(LLVMContext &Context, StringRef Name, DIFile *File,
+                             unsigned Line, DIType *Type,
+                             DINode *BackingStorage, StorageType Storage,
+                             bool ShouldCreate = true) {
+    return getImpl(Context, getCanonicalMDString(Context, Name), File, Line,
+                   Type, BackingStorage, Storage, ShouldCreate);
+  }
+  LLVM_ABI static DIProperty *getImpl(LLVMContext &Context, MDString *Name,
+                                      Metadata *File, unsigned Line,
+                                      Metadata *Type, Metadata *BackingStorage,
+                                      StorageType Storage,
+                                      bool ShouldCreate = true);
+
+  TempDIProperty cloneImpl() const {
+    return getTemporary(getContext(), getName(), getFile(), getLine(),
+                        getType(), getBackingStorage());
+  }
+
+public:
+  DEFINE_MDNODE_GET(DIProperty,
+                    (StringRef Name, DIFile *File, unsigned Line, DIType *Type,
+                     DINode *BackingStorage),
+                    (Name, File, Line, Type, BackingStorage))
+  DEFINE_MDNODE_GET(DIProperty,
+                    (MDString * Name, Metadata *File, unsigned Line,
+                     Metadata *Type, Metadata *BackingStorage),
+                    (Name, File, Line, Type, BackingStorage))
+
+  TempDIProperty clone() const { return cloneImpl(); }
+
+  unsigned getLine() const { return Line; }
+  StringRef getName() const { return getStringOperand(0); }
+  DIFile *getFile() const { return cast_or_null<DIFile>(getRawFile()); }
+  DIType *getType() const { return cast_or_null<DIType>(getRawType()); }
+
+  /// The data member holding the property's backing storage, i.e. the target
+  /// of \c DW_AT_property_forward on this property's
+  /// \c DW_TAG_property_getter child.
+  DINode *getBackingStorage() const {
+    return cast_or_null<DINode>(getRawBackingStorage());
+  }
+
+  StringRef getFilename() const {
+    if (auto *F = getFile())
+      return F->getFilename();
+    return "";
+  }
+
+  StringRef getDirectory() const {
+    if (auto *F = getFile())
+      return F->getDirectory();
+    return "";
+  }
+
+  MDString *getRawName() const { return getOperandAs<MDString>(0); }
+  Metadata *getRawFile() const { return getOperand(1); }
+  Metadata *getRawType() const { return getOperand(2); }
+  Metadata *getRawBackingStorage() const { return getOperand(3); }
+
+  static bool classof(const Metadata *MD) {
+    return MD->getMetadataID() == DIPropertyKind;
+  }
+};
+
 /// An imported module (C++ using directive or similar).
 ///
 /// Uses the SubclassData32 Metadata slot.
@@ -4894,15 +4991,15 @@ public:
 
 /// List of ValueAsMetadata, to be used as an argument to a dbg.value
 /// intrinsic.
-class DIArgList : public Metadata, ReplaceableMetadataImpl {
-  friend class ReplaceableMetadataImpl;
+class DIArgList : public Metadata, ReplaceableUsesWithContext {
+  friend class ReplaceableUses;
   friend class LLVMContextImpl;
   using iterator = SmallVectorImpl<ValueAsMetadata *>::iterator;
 
   SmallVector<ValueAsMetadata *, 4> Args;
 
   DIArgList(LLVMContext &Context, ArrayRef<ValueAsMetadata *> Args)
-      : Metadata(DIArgListKind, Uniqued), ReplaceableMetadataImpl(Context),
+      : Metadata(DIArgListKind, Uniqued), ReplaceableUsesWithContext(Context),
         Args(Args) {
     track();
   }
@@ -4926,7 +5023,7 @@ public:
   }
 
   SmallVector<DbgVariableRecord *> getAllDbgVariableRecordUsers() {
-    return ReplaceableMetadataImpl::getAllDbgVariableRecordUsers();
+    return ReplaceableUses::getAllDbgVariableRecordUsers();
   }
 
   LLVM_ABI void handleChangedOperand(void *Ref, Metadata *New);
