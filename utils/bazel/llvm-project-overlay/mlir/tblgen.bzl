@@ -4,17 +4,16 @@
 """BUILD extensions for MLIR table generation."""
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@fbsource//tools/build_defs:fb_native_wrapper.bzl", "fb_native")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 TdInfo = provider(
-    "Holds TableGen files and the dependencies and include paths necessary to" +
-    " build them.",
+    "Holds TableGen files and the dependencies and include paths necessary to" + " build them.",
     fields = {
-        "transitive_sources": "td files transitively used by this rule.",
         "transitive_includes": (
-            "include arguments to add to the final TableGen invocation. These" +
-            " are the absolute directory paths that will be added with '-I'."
+            "include arguments to add to the final TableGen invocation. These" + " are the absolute directory paths that will be added with '-I'."
         ),
+        "transitive_sources": "td files transitively used by this rule.",
     },
 )
 
@@ -111,18 +110,17 @@ def _td_library_impl(ctx):
 td_library = rule(
     _td_library_impl,
     attrs = {
-        "srcs": attr.label_list(allow_files = True),
-        "includes": attr.string_list(
-            doc = "Include paths to be added to the final TableGen tool" +
-                  " invocation. Relative paths are interpreted as relative to" +
-                  " the current label's package. Absolute paths are" +
-                  " interpreted as relative to the current label's workspace",
-        ),
         # TODO(gcmn): limit to TdInfo providers.
         "deps": attr.label_list(
-            doc = "Dependencies providing TableGen source files and include" +
-                  " paths.",
+            doc = "Dependencies providing TableGen source files and include" + " paths.",
         ),
+        "includes": attr.string_list(
+            doc = "Include paths to be added to the final TableGen tool"
+            + " invocation. Relative paths are interpreted as relative to"
+            + " the current label's package. Absolute paths are"
+            + " interpreted as relative to the current label's workspace",
+        ),
+        "srcs": attr.label_list(allow_files = True),
     },
 )
 
@@ -171,6 +169,30 @@ gentbl_rule = rule(
     _gentbl_rule_impl,
     doc = "Generates tabular code from a table definition file.",
     attrs = {
+        "additional_outputs": attr.output_list(
+            doc = "Extra output files from the TableGen invocation. The primary 'out' is used for the -o argument.",
+        ),
+        # TODO(gcmn): limit to TdInfo providers.
+        "deps": attr.label_list(
+            doc = "Dependencies providing TableGen source files and include" + " paths.",
+        ),
+        "includes": attr.string_list(
+            doc = "Include paths to be added to the final TableGen tool"
+            + " invocation. Relative paths are interpreted as relative to"
+            + " the current label's package. Absolute paths are"
+            + " interpreted as relative to the current label's workspace."
+            + " Includes are applied from all roots available in the"
+            + " execution environment (source, genfiles, and bin"
+            + " directories). The execution roots themselves and the "
+            + " directory of td_file are always added.",
+        ),
+        "opts": attr.string_list(
+            doc = "Additional command line options to add to the TableGen" + " invocation. For include arguments, prefer to use" + " `includes`.",
+        ),
+        "out": attr.output(
+            doc = "The output file for the TableGen invocation.",
+            mandatory = True,
+        ),
         "tblgen": attr.label(
             doc = "The TableGen executable with which to generate `out`.",
             executable = True,
@@ -182,36 +204,8 @@ gentbl_rule = rule(
             mandatory = True,
         ),
         "td_srcs": attr.label_list(
-            doc = "Additional TableGen files included by `td_file`. It is not" +
-                  " necessary to list td_file here (though not an error).",
+            doc = "Additional TableGen files included by `td_file`. It is not" + " necessary to list td_file here (though not an error).",
             allow_files = True,
-        ),
-        # TODO(gcmn): limit to TdInfo providers.
-        "deps": attr.label_list(
-            doc = "Dependencies providing TableGen source files and include" +
-                  " paths.",
-        ),
-        "out": attr.output(
-            doc = "The output file for the TableGen invocation.",
-            mandatory = True,
-        ),
-        "additional_outputs": attr.output_list(
-            doc = "Extra output files from the TableGen invocation. The primary 'out' is used for the -o argument.",
-        ),
-        "opts": attr.string_list(
-            doc = "Additional command line options to add to the TableGen" +
-                  " invocation. For include arguments, prefer to use" +
-                  " `includes`.",
-        ),
-        "includes": attr.string_list(
-            doc = "Include paths to be added to the final TableGen tool" +
-                  " invocation. Relative paths are interpreted as relative to" +
-                  " the current label's package. Absolute paths are" +
-                  " interpreted as relative to the current label's workspace." +
-                  " Includes are applied from all roots available in the" +
-                  " execution environment (source, genfiles, and bin" +
-                  " directories). The execution roots themselves and the " +
-                  " directory of td_file are always added.",
         ),
     },
 )
@@ -239,21 +233,19 @@ def _gentbl_test_impl(ctx):
 
     def _runfiles_path(p):
         if p.startswith(bin_prefix):
-            p = p[len(bin_prefix):]
+            p = p[len(bin_prefix) :]
         elif p.startswith(genfiles_prefix):
-            p = p[len(genfiles_prefix):]
+            p = p[len(genfiles_prefix) :]
         if p.startswith("external/"):
-            return "../" + p[len("external/"):]
+            return "../" + p[len("external/") :]
         return p
 
     test_args = [ctx.executable.tblgen.short_path]
     test_args.extend(ctx.attr.opts)
     test_args.append(_runfiles_path(td_file.path))
-    test_args.extend([
-        arg
-        for include in trans_includes.to_list()
-        for arg in ["-I", _runfiles_path(include), "-I", _runfiles_path(paths.join(ctx.bin_dir.path, include))]
-    ])
+    test_args.extend(
+        [arg for include in trans_includes.to_list() for arg in ["-I", _runfiles_path(include), "-I", _runfiles_path(paths.join(ctx.bin_dir.path, include))]]
+    )
 
     test_args.extend(["-o", "/dev/null"])
 
@@ -288,14 +280,16 @@ def _gentbl_test_impl(ctx):
 gentbl_test = rule(
     _gentbl_test_impl,
     test = True,
-    doc = "A shell test that tests the given TablegGen invocation. Note" +
-          " that unlike gentbl_rule, this builds and invokes `tblgen` in the" +
-          " target configuration. Takes all the same arguments as gentbl_rule" +
-          " except for `out` (as it does not generate any output)",
+    doc = "A shell test that tests the given TablegGen invocation. Note"
+    + " that unlike gentbl_rule, this builds and invokes `tblgen` in the"
+    + " target configuration. Takes all the same arguments as gentbl_rule"
+    + " except for `out` (as it does not generate any output)",
     attrs = {
+        "deps": attr.label_list(doc = "See gentbl_rule.deps"),
+        "includes": attr.string_list(doc = "See gentbl_rule.includes"),
+        "opts": attr.string_list(doc = "See gentbl_rule.opts"),
         "tblgen": attr.label(
-            doc = "The TableGen executable run in the shell command. Note" +
-                  " that this is built in the target configuration.",
+            doc = "The TableGen executable run in the shell command. Note" + " that this is built in the target configuration.",
             executable = True,
             cfg = "target",
         ),
@@ -308,23 +302,10 @@ gentbl_test = rule(
             doc = "See gentbl_rule.td_srcs",
             allow_files = True,
         ),
-        "deps": attr.label_list(doc = "See gentbl_rule.deps"),
-        "opts": attr.string_list(doc = "See gentbl_rule.opts"),
-        "includes": attr.string_list(doc = "See gentbl_rule.includes"),
     },
 )
 
-def gentbl_filegroup(
-        name,
-        tblgen,
-        td_file,
-        tbl_outs,
-        td_srcs = [],
-        includes = [],
-        deps = [],
-        test = False,
-        skip_opts = [],
-        **kwargs):
+def gentbl_filegroup(name, tblgen, td_file, tbl_outs, td_srcs = [], includes = [], deps = [], test = False, skip_opts = [], **kwargs):
     """Create multiple TableGen generated files using the same tool and input.
 
     All generated outputs are bundled in a file group with the given name.
@@ -351,7 +332,7 @@ def gentbl_filegroup(
     included_srcs = []
     if type(tbl_outs) == type({}):
         tbl_outs = [(v, k) for k, v in tbl_outs.items()]
-    for (opts, output_or_outputs) in tbl_outs:
+    for opts, output_or_outputs in tbl_outs:
         outs = output_or_outputs if type(output_or_outputs) == type([]) else [output_or_outputs]
         out = outs[0]
         if not any([skip_opt in opts for skip_opt in skip_opts]):
@@ -372,7 +353,7 @@ def gentbl_filegroup(
             includes = includes,
             out = out,
             additional_outputs = outs[1:],
-            **kwargs
+            **kwargs,
         )
 
         if test:
@@ -390,27 +371,12 @@ def gentbl_filegroup(
                 # Shell files not executable on Windows.
                 # TODO(gcmn): Support windows.
                 tags = ["no_windows"],
-                **kwargs
+                **kwargs,
             )
 
-    native.filegroup(
-        name = name,
-        srcs = included_srcs,
-        **kwargs
-    )
+    fb_native.filegroup(name = name, srcs = included_srcs, **kwargs)
 
-def gentbl_cc_library(
-        name,
-        tblgen,
-        td_file,
-        tbl_outs,
-        td_srcs = [],
-        includes = [],
-        deps = [],
-        strip_include_prefix = None,
-        test = False,
-        copts = None,
-        **kwargs):
+def gentbl_cc_library(name, tblgen, td_file, tbl_outs, td_srcs = [], includes = [], deps = [], strip_include_prefix = None, test = False, copts = None, **kwargs):
     """Create multiple TableGen generated files using the same tool and input.
 
     All generated outputs are bundled in a cc_library rule.
@@ -442,7 +408,7 @@ def gentbl_cc_library(
         deps = deps,
         test = test,
         skip_opts = ["-gen-op-doc"],
-        **kwargs
+        **kwargs,
     )
     cc_library(
         name = name,
@@ -452,7 +418,7 @@ def gentbl_cc_library(
         strip_include_prefix = strip_include_prefix,
         textual_hdrs = [":" + filegroup_name],
         copts = copts,
-        **kwargs
+        **kwargs,
     )
 
 def _gentbl_shard_impl(ctx):
@@ -476,6 +442,10 @@ gentbl_shard_rule = rule(
     output_to_genfiles = True,
     attrs = {
         "index": attr.int(mandatory = True, doc = ""),
+        "out": attr.output(
+            doc = "",
+            mandatory = True,
+        ),
         "sharder": attr.label(
             doc = "",
             executable = True,
@@ -486,27 +456,12 @@ gentbl_shard_rule = rule(
             allow_single_file = True,
             mandatory = True,
         ),
-        "out": attr.output(
-            doc = "",
-            mandatory = True,
-        ),
     },
 )
 
 def gentbl_sharded_ops(
-        name,
-        tblgen,
-        sharder,
-        td_file,
-        shard_count,
-        src_file,
-        src_out,
-        hdr_out,
-        test = False,
-        includes = [],
-        strip_include_prefix = None,
-        deps = [],
-        **kwargs):
+    name, tblgen, sharder, td_file, shard_count, src_file, src_out, hdr_out, test = False, includes = [], strip_include_prefix = None, deps = [], **kwargs
+):
     """Generate sharded op declarations and definitions.
 
     This special build rule shards op definitions in a TableGen file and generates multiple copies
@@ -547,25 +502,14 @@ def gentbl_sharded_ops(
         td_file = td_file,
         test = test,
         deps = deps,
-        **kwargs
+        **kwargs,
     )
     all_files = [hdr_out, src_out]
     for i in range(0, shard_count):
         out_file = "shard_copy_" + str(i) + "_" + src_file
-        gentbl_shard_rule(
-            index = i,
-            name = name + "__src_shard" + str(i),
-            out = out_file,
-            sharder = sharder,
-            src_file = src_file,
-            **kwargs
-        )
+        gentbl_shard_rule(index = i, name = name + "__src_shard" + str(i), out = out_file, sharder = sharder, src_file = src_file, **kwargs)
         all_files.append(out_file)
-    native.filegroup(
-        name = name,
-        srcs = all_files,
-        **kwargs
-    )
+    fb_native.filegroup(name = name, srcs = all_files, **kwargs)
 
 def gentbl_sharded_op_defs(name, source_file, shard_count):
     """Generates multiple copies of a source file that includes sharded op definitions.
@@ -582,11 +526,11 @@ def gentbl_sharded_op_defs(name, source_file, shard_count):
     for i in range(0, shard_count):
         out_file = "shard_copy_" + str(i) + "_" + source_file
         copies.append(out_file)
-        native.genrule(
+        fb_native.genrule(
             name = name + "_shard_" + str(i),
             srcs = [source_file],
             outs = [out_file],
-            cmd = "echo -e \"#define GET_OP_DEFS_" + str(i) + "\n$$(cat $(SRCS))\" > $(OUTS)",
+            cmd = 'echo -e "#define GET_OP_DEFS_' + str(i) + '\n$$(cat $(SRCS))" > $(OUTS)',
             cmd_bat = ">$(OUTS) echo #define GET_OP_DEFS_" + str(i) + "&& >>$(OUTS) type $(SRCS)",
         )
     return copies

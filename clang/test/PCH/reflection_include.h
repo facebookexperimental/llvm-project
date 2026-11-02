@@ -1,1 +1,0 @@
-using info = decltype(^^int);

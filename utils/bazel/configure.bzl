@@ -73,10 +73,12 @@ def _overlay_directories(repository_ctx):
         if not stack:
             return
 
-    fail("overlay_directories: exceeded MAX_TRAVERSAL_STEPS ({}). " +
-         "Tree too large or a cycle in the filesystem?".format(
-             MAX_TRAVERSAL_STEPS,
-         ))
+    fail(
+        "overlay_directories: exceeded MAX_TRAVERSAL_STEPS ({}). "
+        + "Tree too large or a cycle in the filesystem?".format(
+            MAX_TRAVERSAL_STEPS,
+        )
+    )
 
 def _extract_cmake_settings(repository_ctx, llvm_cmake):
     # The list to be written to vars.bzl

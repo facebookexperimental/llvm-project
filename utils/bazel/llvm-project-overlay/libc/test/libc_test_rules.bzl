@@ -22,18 +22,19 @@ _TEST_DEFINES = [
 ]
 
 def libc_test(
-        name,
-        srcs = [],
-        copts = [],
-        deps = [],
-        local_defines = [],
-        linkopts = [],
-        c_test = False,
-        full_build_only = False,
-        overlay_build_only = False,
-        target_compatible_with = [],
-        tags = [],
-        **kwargs):
+    name,
+    srcs = [],
+    copts = [],
+    deps = [],
+    local_defines = [],
+    linkopts = [],
+    c_test = False,
+    full_build_only = False,
+    overlay_build_only = False,
+    target_compatible_with = [],
+    tags = [],
+    **kwargs,
+):
     """Add target for a libc test.
 
     Args:
@@ -50,26 +51,29 @@ def libc_test(
       tags: Tags for the cc_test.
       **kwargs: Attributes relevant for a cc_test.
     """
-    deps = deps + [
-        "//libc:hdr_stdint_proxy",
-        "//libc:__support_macros_config",
-        "//libc:__support_libc_errno",
-        "//libc:errno",
-        "//libc:func_aligned_alloc",
-        "//libc:func_free",
-        "//libc:func_malloc",
-        "//libc:func_realloc",
-    ] + select({
-        "//libc:full_build": [
-            "//libc/startup/linux:crt1_library",
-
-            # The compiler may emit references to symbols it expects to exist,
-            # like `memset`. These dependencies hermetically provide them.
-            "//libc/test/UnitTest:HermeticTestUtils",
-            "//libc:__stack_chk_fail",  # Needed if -fstack-protector is set.
-        ],
-        "//conditions:default": [],
-    })
+    deps = (
+        deps
+        + [
+            "//libc:hdr_stdint_proxy",
+            "//libc:__support_macros_config",
+            "//libc:__support_libc_errno",
+            "//libc:errno",
+            "//libc:func_aligned_alloc",
+            "//libc:func_free",
+            "//libc:func_malloc",
+            "//libc:func_realloc",
+        ]
+        + select({
+            "//libc:full_build": [
+                "//libc/startup/linux:crt1_library",
+                # The compiler may emit references to symbols it expects to exist,
+                # like `memset`. These dependencies hermetically provide them.
+                "//libc/test/UnitTest:HermeticTestUtils",
+                "//libc:__stack_chk_fail",  # Needed if -fstack-protector is set.
+            ],
+            "//conditions:default": [],
+        })
+    )
 
     if c_test:
         deps = deps + ["//libc/test/UnitTest:LibcCTest"]
@@ -118,15 +122,10 @@ def libc_test(
         linkopts = linkopts,
         linkstatic = 1,
         tags = tags,
-        **kwargs
+        **kwargs,
     )
 
-def libc_test_library(
-        name,
-        deps = [],
-        copts = [],
-        local_defines = [],
-        **kwargs):
+def libc_test_library(name, deps = [], copts = [], local_defines = [], **kwargs):
     """Add target for library used in libc tests.
 
     Args:
@@ -143,5 +142,5 @@ def libc_test_library(
         copts = copts + libc_common_copts(),
         local_defines = local_defines + _TEST_DEFINES + LIBC_CONFIGURE_OPTIONS,
         linkstatic = 1,
-        **kwargs
+        **kwargs,
     )

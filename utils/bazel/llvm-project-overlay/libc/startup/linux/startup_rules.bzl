@@ -67,10 +67,7 @@ libc_startup_object = rule(
     },
 )
 
-def _filter_flags(
-        flags,
-        separate_flag_names,
-        joined_flag_prefixes):
+def _filter_flags(flags, separate_flag_names, joined_flag_prefixes):
     """Filters flags to those in joined_flag_prefixes or separate_flag_names.
 
     Args:
@@ -105,22 +102,13 @@ def _indirect_deps_linking_context(deps):
     """Creates a linking context with indirect inputs from deps."""
     direct_dep_labels = set([dep.label for dep in deps])
     indirect_dep_linker_inputs = [
-        linker_input
-        for dep in deps
-        for linker_input in dep[CcInfo].linking_context.linker_inputs.to_list()
-        if linker_input.owner not in direct_dep_labels
+        linker_input for dep in deps for linker_input in dep[CcInfo].linking_context.linker_inputs.to_list() if linker_input.owner not in direct_dep_labels
     ]
     return cc_common.create_linking_context(
         linker_inputs = depset(indirect_dep_linker_inputs),
     )
 
-def _create_merged_relocatable_object(
-        ctx,
-        inputs,
-        output,
-        linker,
-        link_flags,
-        cc_toolchain):
+def _create_merged_relocatable_object(ctx, inputs, output, linker, link_flags, cc_toolchain):
     """Configures an action to execute a relocatable link."""
     args = ctx.actions.args()
     args.add_all(link_flags)
