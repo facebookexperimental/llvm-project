@@ -855,28 +855,6 @@ bool SIPreEmitPeephole::run(MachineFunction &MF, MachineLoopInfo *LoopInfo) {
   MF.RenumberBlocks();
 
   for (MachineBasicBlock &MBB : MF) {
-    if (ST.hasGFX950Insts()) {
-      for (MachineInstr &MI : MBB) {
-        if (MI.getOpcode() != AMDGPU::V_PK_MUL_F32)
-          continue;
-        const auto *Src0Mods =
-            TII->getNamedOperand(MI, AMDGPU::OpName::src0_modifiers);
-        const auto *Src1Mods =
-            TII->getNamedOperand(MI, AMDGPU::OpName::src1_modifiers);
-        // On gfx950, a V_PK_MUL_F32 whose source 1 selects the high DWORD
-        // for the low result lane (OP_SEL_0 set on source 1) can produce
-        // incorrect results in/around MFMA sequences, even beyond the
-        // modeled dependency latency. Canonicalize by commuting whenever
-        // the old source 0 selects low for the low lane: the commuted
-        // source 1 (old source 0) then selects low and is unaffected.
-        if ((Src1Mods->getImm() & SISrcMods::OP_SEL_0) == 0 ||
-            (Src0Mods->getImm() & SISrcMods::OP_SEL_0) != 0)
-          continue;
-
-        Changed |= TII->commuteInstruction(MI, /*NewMI=*/false) != nullptr;
-      }
-    }
-
     Changed |= removeRedundantModeWrites(MBB);
 
     MachineBasicBlock::iterator TermI = MBB.getFirstTerminator();

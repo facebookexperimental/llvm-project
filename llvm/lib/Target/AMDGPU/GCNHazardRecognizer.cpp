@@ -21,7 +21,6 @@
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/ScheduleDAG.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "llvm/TargetParser/AMDGPUTargetParser.h"
 
 using namespace llvm;
@@ -3084,7 +3083,7 @@ bool GCNHazardRecognizer::fixShift64HighRegBug(MachineInstr *MI) {
 }
 
 // Handle GFX950 v_pk_{add,mul,fma}_f32 invalid op_sels
-// 1. Fix: opsel[1:0]==2'b10 : Packed ADD_F32/MUL_F32
+// 1. Fix: opsel[1:0]==2’b10 : Packed ADD_F32/MUL_F32
 // 2. Fail: opsel[2:1]==2'b01/2'b10/2'b11 : Packed FMA_F32
 bool GCNHazardRecognizer::fixPkF32InvalidOpSel(MachineInstr *MI) {
   if (!ST.hasPkF32InvalidOpSel())

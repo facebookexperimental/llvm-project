@@ -86,8 +86,8 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -438,9 +438,6 @@ private:
   // instructions are sorted in depth-first order.
   DenseMap<const SCEV *, SmallSetVector<Instruction *, 2>> SCEVToInsts;
 
-  using SCEVUnknownSet = SmallPtrSet<const SCEVUnknown *, 4>;
-  DenseMap<const SCEV *, SCEVUnknownSet> SCEVUnknownsCache;
-
   // Record the dependency between instructions. If C.Basis == B, we would have
   // {B.Ins -> {C.Ins, ...}}.
   MapVector<Instruction *, std::vector<Instruction *>> DependencyGraph;
@@ -530,8 +527,6 @@ private:
   }
 
   bool candidatePredicate(Candidate *Basis, Candidate &C, Candidate::DKind K);
-
-  bool hasSameSCEVUnknowns(const SCEV *A, const SCEV *B);
 
   bool searchFrom(const CandidateDictTy::BBToCandsTy &BBToCands, Candidate &C,
                   Candidate::DKind K);
@@ -744,31 +739,6 @@ bool StraightLineStrengthReduce::isSimilar(Candidate &C, Candidate &Basis,
          Basis.CandidateKind == C.CandidateKind;
 }
 
-bool StraightLineStrengthReduce::hasSameSCEVUnknowns(const SCEV *A,
-                                                     const SCEV *B) {
-  auto CacheUnknowns = [&](const SCEV *Root) {
-    auto [It, Inserted] = SCEVUnknownsCache.try_emplace(Root);
-    if (!Inserted)
-      return;
-
-    struct Collector {
-      SCEVUnknownSet &Unknowns;
-
-      bool follow(const SCEV *S) {
-        if (auto *Unknown = dyn_cast<SCEVUnknown>(S))
-          Unknowns.insert(Unknown);
-        return true;
-      }
-      bool isDone() const { return false; }
-    } C{It->second};
-    visitAll(Root, C);
-  };
-  CacheUnknowns(A);
-  CacheUnknowns(B);
-
-  return SCEVUnknownsCache.find(A)->second == SCEVUnknownsCache.find(B)->second;
-}
-
 void StraightLineStrengthReduce::initializeScrubbedFunction(
     const Function &F) {
   if (ScrubbedFunction)
@@ -864,18 +834,6 @@ bool StraightLineStrengthReduce::candidatePredicate(Candidate *Basis,
                                                     Candidate::DKind K) {
   if (!isSimilar(C, *Basis, K))
     return false;
-
-  // Once a reusable delta is found, only a constant delta can improve it.
-  // Different symbolic leaves cannot cancel to a constant, so such a basis
-  // cannot improve C. Skip it and continue searching older candidates.
-  if (C.Delta && K != Candidate::IndexDelta) {
-    const SCEV *CandidateSCEV =
-        K == Candidate::BaseDelta ? C.Base : C.StrideSCEV;
-    const SCEV *BasisSCEV =
-        K == Candidate::BaseDelta ? Basis->Base : Basis->StrideSCEV;
-    if (!hasSameSCEVUnknowns(CandidateSCEV, BasisSCEV))
-      return false;
-  }
 
   assert(DT->dominates(Basis->Ins, C.Ins));
   Value *Delta = getDelta(C, *Basis, K);
@@ -1528,7 +1486,6 @@ bool StraightLineStrengthReduce::runOnFunction(Function &F) {
       break;
     }
   }
-
   // Traverse the dominator tree in the depth-first order. This order makes sure
   // all bases of a candidate are in Candidates when we process it.
   for (const auto Node : depth_first(DT))
