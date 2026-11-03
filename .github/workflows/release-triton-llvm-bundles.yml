@@ -12,6 +12,12 @@ on:
         required: true
         default: "1"
         type: string
+      kind:
+        description: "core: the Triton LLVM bundle; amd: the AMD codegen LLVM SDK"
+        required: true
+        default: core
+        type: choice
+        options: [core, amd]
   # scheduled-triton-llvm-bundles.yml calls this for fork branch tips without a release.
   workflow_call:
     inputs:
@@ -21,6 +27,10 @@ on:
       build_number:
         required: false
         default: "1"
+        type: string
+      kind:
+        required: false
+        default: core
         type: string
 
 permissions:
@@ -40,6 +50,7 @@ jobs:
     outputs:
       llvm_sha: ${{ steps.revision.outputs.llvm_sha }}
       short_sha: ${{ steps.revision.outputs.short_sha }}
+      prefix: ${{ steps.revision.outputs.prefix }}
       platforms: ${{ steps.missing.outputs.platforms }}
     steps:
       - name: Checkout requested LLVM revision
@@ -53,8 +64,11 @@ jobs:
         shell: bash
         run: |
           llvm_sha="$(git rev-parse HEAD)"
-          echo "llvm_sha=${llvm_sha}" >> "${GITHUB_OUTPUT}"
-          echo "short_sha=${llvm_sha:0:8}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "llvm_sha=${llvm_sha}"
+            echo "short_sha=${llvm_sha:0:8}"
+            echo "prefix=${{ inputs.kind == 'amd' && 'amd-llvm' || 'llvm' }}"
+          } >> "${GITHUB_OUTPUT}"
 
       # Releases are immutable: build only the platforms this release lacks and no
       # other run is building. Build job names carry the commit, so a build started
@@ -66,9 +80,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
+          prefix="${{ steps.revision.outputs.prefix }}"
           short_sha="${{ steps.revision.outputs.short_sha }}"
           build_number="${{ inputs.build_number }}"
-          have="$(gh release view "llvm-${short_sha}-${build_number}" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+          have="$(gh release view "${prefix}-${short_sha}-${build_number}" --json assets --jq '.assets[].name' 2>/dev/null || true)"
           busy=""
           for status in queued in_progress; do
             for run_id in $(gh api "repos/${GH_REPO}/actions/runs?status=${status}&per_page=100" \
@@ -77,13 +92,13 @@ jobs:
                          --jq '.jobs[] | select(.status != "completed") | .name')"$'\n'
             done
           done
-          platforms="$(jq -cn --arg have "${have}" --arg busy "${busy}" --arg s "${short_sha}" --arg n "${build_number}" '
+          platforms="$(jq -cn --arg have "${have}" --arg busy "${busy}" --arg p "${prefix}" --arg s "${short_sha}" --arg n "${build_number}" '
             [ {target_os: "almalinux", arch: "x64",   runs_on: "ubuntu-22.04",     container: "almalinux:8.10-20250411"},
               {target_os: "almalinux", arch: "arm64", runs_on: "ubuntu-22.04-arm", container: "almalinux:8.10-20250411"},
               # Ubuntu 22.04 (glibc 2.35): Triton picks these on glibc > 2.28 hosts.
               {target_os: "ubuntu",    arch: "x64",   runs_on: "ubuntu-22.04",     container: ""},
               {target_os: "ubuntu",    arch: "arm64", runs_on: "ubuntu-22.04-arm", container: ""} ]
-            | map(select(("llvm-\($s)-\(.target_os)-\(.arch)-\($n).tar.gz") as $name
+            | map(select(("\($p)-\($s)-\(.target_os)-\(.arch)-\($n).tar.gz") as $name
                          | ($have | split("\n") | index($name)) == null))
             | map(select(("Build \($s) \(.target_os)-\(.arch)") as $job
                          | [$busy | split("\n")[] | select(contains($job))] | length == 0))')"
@@ -143,9 +158,30 @@ jobs:
       - name: Define bundle name
         shell: bash
         run: |
-          bundle_name="llvm-${{ needs.prepare.outputs.short_sha }}-${{ matrix.config.target_os }}-${{ matrix.config.arch }}-${{ inputs.build_number }}"
+          bundle_name="${{ needs.prepare.outputs.prefix }}-${{ needs.prepare.outputs.short_sha }}-${{ matrix.config.target_os }}-${{ matrix.config.arch }}-${{ inputs.build_number }}"
           echo "bundle_name=${bundle_name}" >> "${GITHUB_ENV}"
           echo "install_dir=${GITHUB_WORKSPACE}/out/${bundle_name}" >> "${GITHUB_ENV}"
+
+      # Same per-package settings as Triton's .github/workflows/llvm-build.yml.
+      - name: Select LLVM build settings
+        shell: bash
+        run: |
+          if [[ "${{ inputs.kind }}" == "amd" ]]; then
+            {
+              echo 'llvm_projects='
+              echo 'llvm_targets=AMDGPU'
+              echo 'llvm_build_utils=OFF'
+              echo 'llvm_include_tests=OFF'
+              echo 'LLVM_DISTRIBUTION_COMPONENTS=llvm-headers;llvm-libraries;cmake-exports'
+            } >> "${GITHUB_ENV}"
+          else
+            {
+              echo 'llvm_projects=mlir;llvm;lld;clang'
+              echo 'llvm_targets=host;NVPTX;AMDGPU'
+              echo 'llvm_build_utils=ON'
+              echo 'llvm_include_tests=ON'
+            } >> "${GITHUB_ENV}"
+          fi
 
       - name: Configure LLVM
         shell: bash
@@ -159,19 +195,28 @@ jobs:
             -DCMAKE_CXX_COMPILER=clang++
             -DCMAKE_INSTALL_PREFIX="${install_dir}"
             -DCMAKE_LINKER=lld
-            -DLLVM_BUILD_UTILS=ON
+            -DLLVM_BUILD_UTILS="${llvm_build_utils}"
             -DLLVM_BUILD_TOOLS=ON
             -DLLVM_ENABLE_ASSERTIONS=ON
             -DMLIR_ENABLE_BINDINGS_PYTHON=OFF
-            -DLLVM_ENABLE_PROJECTS=mlir\;llvm\;lld\;clang
+            -DLLVM_ENABLE_PROJECTS="${llvm_projects}"
             -DLLVM_DISTRIBUTION_COMPONENTS="${LLVM_DISTRIBUTION_COMPONENTS}"
-            -DLLVM_INSTALL_UTILS=ON
-            -DLLVM_TARGETS_TO_BUILD=host\;NVPTX\;AMDGPU
+            -DLLVM_INSTALL_UTILS="${llvm_build_utils}"
+            -DLLVM_TARGETS_TO_BUILD="${llvm_targets}"
+            -DLLVM_INCLUDE_TESTS="${llvm_include_tests}"
             -DLLVM_ENABLE_ZSTD=OFF
             -DLLVM_ENABLE_LZMA=OFF
             -DCMAKE_C_COMPILER_LAUNCHER=sccache
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
           )
+          if [[ "${{ inputs.kind }}" == "amd" ]]; then
+            # fbtriton-beta-amd-codegen* branches are pruned to the codegen scope.
+            cmake_args+=(
+              -DLLVM_INCLUDE_EXAMPLES=OFF
+              -DLLVM_INCLUDE_DOCS=OFF
+              -DLLVM_INCLUDE_BENCHMARKS=OFF
+            )
+          fi
           if [[ "${{ matrix.config.target_os }}" == "almalinux" ]]; then
             cmake_args+=(
               -DCMAKE_ASM_COMPILER=clang
@@ -185,7 +230,7 @@ jobs:
       - name: Build, test, and install LLVM
         run: >-
           cmake --build "${RUNNER_TEMP}/llvm-build"
-          --target check-mlir install-distribution
+          --target ${{ inputs.kind == 'amd' && 'install-distribution' || 'check-mlir install-distribution' }}
           --parallel 4
 
       - name: Show sccache stats
@@ -224,7 +269,7 @@ jobs:
       - name: Download bundles
         uses: actions/download-artifact@v8.0.1
         with:
-          pattern: llvm-*
+          pattern: ${{ needs.prepare.outputs.prefix }}-*
           path: dist
           merge-multiple: true
 
@@ -236,15 +281,15 @@ jobs:
         run: |
           llvm_sha="${{ needs.prepare.outputs.llvm_sha }}"
           short_sha="${{ needs.prepare.outputs.short_sha }}"
-          tag="llvm-${short_sha}-${{ inputs.build_number }}"
+          tag="${{ needs.prepare.outputs.prefix }}-${short_sha}-${{ inputs.build_number }}"
 
           if gh release view "${tag}" >/dev/null 2>&1; then
             existing_assets="$(gh release view "${tag}" --json assets --jq '.assets[].name')"
           else
             gh release create "${tag}" \
               --target "${llvm_sha}" \
-              --title "LLVM for Triton (${short_sha}, build ${{ inputs.build_number }})" \
-              --notes "Prebuilt LLVM bundles for Triton from ${llvm_sha}."
+              --title "${{ inputs.kind == 'amd' && 'AMD codegen LLVM' || 'LLVM' }} for Triton (${short_sha}, build ${{ inputs.build_number }})" \
+              --notes "Prebuilt ${{ inputs.kind == 'amd' && 'AMD codegen LLVM SDKs' || 'LLVM bundles' }} for Triton from ${llvm_sha}."
             existing_assets=""
           fi
 
