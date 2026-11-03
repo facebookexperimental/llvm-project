@@ -168,6 +168,7 @@ jobs:
             -DLLVM_INSTALL_UTILS=ON
             -DLLVM_TARGETS_TO_BUILD=host\;NVPTX\;AMDGPU
             -DLLVM_ENABLE_ZSTD=OFF
+            -DLLVM_ENABLE_LZMA=OFF
             -DCMAKE_C_COMPILER_LAUNCHER=sccache
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
           )
