@@ -59,8 +59,10 @@
 #include "llvm/CodeGen/VirtRegMap.h"
 #include "llvm/IR/Analysis.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/PassTimingInfo.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/BlockFrequency.h"
@@ -70,7 +72,12 @@
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Triple.h"
 #include <algorithm>
+#include <chrono>
+#include <mutex>
+#include <set>
 #include <cassert>
 #include <cstdint>
 #include <utility>
@@ -90,6 +97,64 @@ static cl::opt<SplitEditor::ComplementSpillMode> SplitSpillMode(
                clEnumValN(SplitEditor::SM_Size, "size", "Optimize for size"),
                clEnumValN(SplitEditor::SM_Speed, "speed", "Optimize for speed")),
     cl::init(SplitEditor::SM_Speed));
+
+// Intern (Triton beta) patch: gfx1250 register allocation can be very
+// slow, so warn when it takes unusually long. On by default; see
+// llvm_cherry_picks.md.
+static cl::opt<bool> WarnGFX1250LongRegAlloc(
+    "gfx1250-regalloc-time-warn",
+    cl::desc("Warn when greedy register allocation for a gfx1250 function "
+             "takes longer than "
+             "-gfx1250-regalloc-time-warn-threshold-seconds"),
+    cl::init(true));
+
+static cl::opt<unsigned> GFX1250LongRegAllocThresholdSeconds(
+    "gfx1250-regalloc-time-warn-threshold-seconds",
+    cl::desc("Threshold, in seconds, for -gfx1250-regalloc-time-warn"),
+    cl::init(120), cl::Hidden);
+
+static bool isGFX1250Target(const MachineFunction &MF) {
+  if (MF.getTarget().getTargetTriple().getArch() != Triple::amdgpu)
+    return false;
+  StringRef CPU = MF.getTarget().getTargetCPU();
+  if (CPU.empty())
+    CPU = MF.getFunction().getFnAttribute("target-cpu").getValueAsString();
+  return CPU == "gfx1250";
+}
+
+static void
+warnIfGFX1250RegAllocSlow(MachineFunction &MF,
+                          std::chrono::steady_clock::time_point Start) {
+  if (!WarnGFX1250LongRegAlloc || !isGFX1250Target(MF))
+    return;
+  double ElapsedSeconds =
+      std::chrono::duration<double>(std::chrono::steady_clock::now() - Start)
+          .count();
+  if (ElapsedSeconds <= GFX1250LongRegAllocThresholdSeconds)
+    return;
+  // AMDGPU runs the greedy allocator several times per function (SGPR,
+  // WWM and VGPR passes); warn only once per function.
+  static std::mutex WarnedMutex;
+  static std::set<std::string> WarnedFunctions;
+  {
+    std::lock_guard<std::mutex> Lock(WarnedMutex);
+    std::string Key = MF.getFunction().getParent()->getModuleIdentifier() +
+                      ":" + MF.getName().str();
+    if (!WarnedFunctions.insert(Key).second)
+      return;
+  }
+  std::string Msg;
+  raw_string_ostream OS(Msg);
+  OS << "register allocation for function '" << MF.getName()
+     << "' on gfx1250 took " << (unsigned long long)ElapsedSeconds
+     << "s, exceeding the " << GFX1250LongRegAllocThresholdSeconds
+     << "s warning threshold. gfx1250 has many more registers than "
+        "previous AMD GPUs, and optimizing register-allocator compile "
+        "time for gfx1250 is a work in progress, so this function may "
+        "compile slowly";
+  MF.getFunction().getContext().diagnose(
+      DiagnosticInfoGeneric(Msg, DS_Warning));
+}
 
 static cl::opt<unsigned>
 LastChanceRecoloringMaxDepth("lcr-max-depth", cl::Hidden,
@@ -2959,6 +3024,8 @@ bool RAGreedy::run(MachineFunction &mf) {
   if (!hasVirtRegAlloc())
     return false;
 
+  const auto RegAllocStart = std::chrono::steady_clock::now();
+
   // Canonicalize LiveDebugVariables' indexes here and again in
   // emitDebugValues(); those are the only two points where it is clean, as
   // splitting stales indexes again mid-run. Reclaiming erased entries needs
@@ -3009,6 +3076,8 @@ bool RAGreedy::run(MachineFunction &mf) {
     MF->verify(LIS, Indexes, "Before post optimization", &errs());
   postOptimization();
   reportStats();
+
+  warnIfGFX1250RegAllocSlow(*MF, RegAllocStart);
 
   releaseMemory();
   return true;
