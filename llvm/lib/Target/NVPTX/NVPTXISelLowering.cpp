@@ -871,6 +871,10 @@ NVPTXTargetLowering::NVPTXTargetLowering(const NVPTXTargetMachine &TM,
                       ISD::SINT_TO_FP, ISD::UINT_TO_FP, ISD::SETCC},
                      {MVT::v2i16, MVT::v2i32}, Expand);
 
+  // v2i16 (S|U)MUL_LOHI has no instruction pattern: expand to scalar lanes
+  // (each selects mul.wide) instead of hitting "Cannot select" in ISel.
+  setOperationAction({ISD::SMUL_LOHI, ISD::UMUL_LOHI}, MVT::v2i16, Expand);
+
   // v2i32 is not supported for any arithmetic operations
   setOperationAction({ISD::ABS, ISD::SMIN, ISD::SMAX, ISD::UMIN, ISD::UMAX,
                       ISD::CTPOP, ISD::CTLZ, ISD::ADD, ISD::SUB, ISD::MUL,
@@ -897,9 +901,11 @@ NVPTXTargetLowering::NVPTXTargetLowering(const NVPTXTargetMachine &TM,
   // PTX does not directly support SELP of i1, so promote to i32 first
   setOperationAction(ISD::SELECT, MVT::i1, Custom);
 
-  // PTX cannot multiply two i64s in a single instruction.
-  setOperationAction(ISD::SMUL_LOHI, MVT::i64, Expand);
-  setOperationAction(ISD::UMUL_LOHI, MVT::i64, Expand);
+  // PTX only exposes separate mul.lo and mul.hi forms. Lower i16 and i32 to
+  // use mul.wide. i64 has no mul.wide, so it expands to MUL and MULHS/MULHU.
+  setOperationAction({ISD::SMUL_LOHI, ISD::UMUL_LOHI}, {MVT::i16, MVT::i32},
+                     Custom);
+  setOperationAction({ISD::SMUL_LOHI, ISD::UMUL_LOHI}, MVT::i64, Expand);
 
   // We have some custom DAG combine patterns for these nodes
   setTargetDAGCombine({ISD::ADD,
@@ -2534,6 +2540,20 @@ static SDValue LowerVectorArith(SDValue Op, SelectionDAG &DAG) {
   return V;
 }
 
+static SDValue lowerMUL_LOHI(SDValue Op, SelectionDAG &DAG) {
+  const SDLoc DL(Op);
+  const EVT VT = Op.getValueType();
+  const unsigned Opc = Op.getOpcode() == ISD::SMUL_LOHI
+                           ? NVPTXISD::MUL_WIDE_SIGNED
+                           : NVPTXISD::MUL_WIDE_UNSIGNED;
+
+  SDValue Wide =
+      DAG.getNode(Opc, DL, VT.widenIntegerElementType(*DAG.getContext()),
+                  Op.getOperand(0), Op.getOperand(1));
+  auto [Lo, Hi] = DAG.SplitScalar(Wide, DL, VT, VT);
+  return DAG.getMergeValues({Lo, Hi}, DL);
+}
+
 static SDValue lowerTcgen05St(SDValue Op, SelectionDAG &DAG,
                               bool hasOffset = false) {
   // skip lowering if the vector operand is already legalized
@@ -3228,10 +3248,8 @@ static SDValue lowerIntrinsicWChain(SDValue Op, SelectionDAG &DAG) {
   default:
     return Op;
 
-  // These tcgen05 intrinsics return a v2i32. When v2i32 registers are
-  // enabled it is legal, so they are lowered through LowerOperation()
-  // instead of ReplaceNodeResults(); when they are disabled, v2i32 is
-  // illegal and ReplaceNodeResults() handles them like the other sizes.
+  // These tcgen05 intrinsics return a v2i32, which is legal, so we have to
+  // lower them through LowerOperation() instead of ReplaceNodeResults().
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x1:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x2:
@@ -3599,6 +3617,9 @@ NVPTXTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::SREM:
   case ISD::UREM:
     return LowerVectorArith(Op, DAG);
+  case ISD::SMUL_LOHI:
+  case ISD::UMUL_LOHI:
+    return lowerMUL_LOHI(Op, DAG);
   case ISD::DYNAMIC_STACKALLOC:
     return LowerDYNAMIC_STACKALLOC(Op, DAG);
   case ISD::STACKRESTORE:
@@ -7572,7 +7593,6 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
   }
 
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x1:
-  case Intrinsic::nvvm_tcgen05_ld_16x64b_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x4:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x8:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x16:
@@ -7580,14 +7600,12 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x64:
   case Intrinsic::nvvm_tcgen05_ld_16x64b_x128:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x1:
-  case Intrinsic::nvvm_tcgen05_ld_32x32b_x2:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x4:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x8:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x16:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x32:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x64:
   case Intrinsic::nvvm_tcgen05_ld_32x32b_x128:
-  case Intrinsic::nvvm_tcgen05_ld_16x128b_x1:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x4:
   case Intrinsic::nvvm_tcgen05_ld_16x128b_x8:
@@ -7607,7 +7625,6 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
     return;
 
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x1:
-  case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x2:
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x4:
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x8:
   case Intrinsic::nvvm_tcgen05_ld_16x32bx2_x16:
@@ -7620,8 +7637,6 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
     }
     return;
 
-  case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x2_i32:
-  case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x2_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x8_i32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x8_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x64_i32:
@@ -7634,8 +7649,6 @@ static void ReplaceINTRINSIC_W_CHAIN(SDNode *N, SelectionDAG &DAG,
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x16_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x128_i32:
   case Intrinsic::nvvm_tcgen05_ld_red_32x32b_x128_f32:
-  case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x2_i32:
-  case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x2_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x8_i32:
   case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x8_f32:
   case Intrinsic::nvvm_tcgen05_ld_red_16x32bx2_x64_i32:
