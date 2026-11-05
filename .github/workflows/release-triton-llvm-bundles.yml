@@ -98,7 +98,9 @@ jobs:
           BUILD_NUMBER: ${{ inputs.build_number }}
         shell: bash
         run: |
-          assets="$(gh api "repos/${GH_REPO}/releases/tags/${PREFIX}-${SHORT_SHA}-${BUILD_NUMBER}" --jq '.assets' 2>/dev/null || echo '[]')"
+          if ! assets="$(gh api "repos/${GH_REPO}/releases/tags/${PREFIX}-${SHORT_SHA}-${BUILD_NUMBER}" --jq '.assets' 2>/dev/null)"; then
+            assets='[]'
+          fi
           jq -e 'all(.[]; .digest != null)' <<< "$assets" >/dev/null || {
             echo 'Published assets are missing GitHub digests' >&2
             exit 1
@@ -129,7 +131,7 @@ jobs:
       fail-fast: false
       matrix:
         config: ${{ fromJSON(needs.prepare.outputs.platforms) }}
-    uses: facebookexperimental/triton/.github/workflows/llvm-build.yml@500b70788c9503a56b1cfcbc8842250974682b9e
+    uses: facebookexperimental/triton/.github/workflows/llvm-build.yml@2ca92347ec4fc71c67f35c45687b054ad1f51d35
     with:
       package: ${{ needs.prepare.outputs.prefix }}
       config: ${{ toJSON(matrix.config) }}

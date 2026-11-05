@@ -41,8 +41,8 @@ jobs:
                   prefix, short, number = match.groups()
                   assets = {asset["name"]: asset for asset in release["assets"]}
                   names = [f"{prefix}-{short}-{platform}-{number}.tar.gz" for platform in platforms]
-                  if all(name in assets and assets[name].get("digest") and name + ".sha256" in assets
-                         for name in names):
+                  if all(name in assets and assets[name].get("digest")
+                         and assets.get(name + ".sha256", {}).get("digest") for name in names):
                       released[(prefix, release["target_commitish"])] = release["tag_name"]
           tips = []
           for branch_prefix, (kind, prefix) in lines.items():
