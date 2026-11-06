@@ -484,13 +484,11 @@ void AMDGPUTargetAsmStreamer::EmitAmdhsaKernelDescriptor(
       amdhsa::KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE_SHIFT,
       amdhsa::KERNEL_CODE_PROPERTY_ENABLE_SGPR_PRIVATE_SEGMENT_SIZE,
       ".amdhsa_user_sgpr_private_segment_size");
-  if (STI.getFeatureBits().test(AMDGPU::FeatureSupportsWave32) &&
-      STI.getFeatureBits().test(AMDGPU::FeatureSupportsWave64)) {
+  if (IVersion.Major >= 10)
     PrintField(KD.kernel_code_properties,
                amdhsa::KERNEL_CODE_PROPERTY_ENABLE_WAVEFRONT_SIZE32_SHIFT,
                amdhsa::KERNEL_CODE_PROPERTY_ENABLE_WAVEFRONT_SIZE32,
                ".amdhsa_wavefront_size32");
-  }
   if (CodeObjectVersion >= AMDGPU::AMDHSA_COV5)
     PrintField(KD.kernel_code_properties,
                amdhsa::KERNEL_CODE_PROPERTY_USES_DYNAMIC_STACK_SHIFT,
@@ -935,9 +933,13 @@ unsigned AMDGPUTargetELFStreamer::getEFlagsV4() {
   EFlagsV4 |= getElfMach(STI.getCPU());
 
   // xnack.
-  switch (getTargetID()->getXnackSetting()) {
+  // Hardwired-on XNACK is implied by the processor, not an ELF mode selection.
+  AMDGPU::TargetIDSetting XnackSetting =
+      STI.hasFeature(AMDGPU::FeatureXNACKOnOffModes)
+          ? getTargetID()->getXnackSetting()
+          : AMDGPU::TargetIDSetting::Unsupported;
+  switch (XnackSetting) {
   case AMDGPU::TargetIDSetting::Unsupported:
-    EFlagsV4 |= ELF::EF_AMDGPU_FEATURE_XNACK_UNSUPPORTED_V4;
     break;
   case AMDGPU::TargetIDSetting::Any:
     EFlagsV4 |= ELF::EF_AMDGPU_FEATURE_XNACK_ANY_V4;
@@ -950,9 +952,13 @@ unsigned AMDGPUTargetELFStreamer::getEFlagsV4() {
     break;
   }
   // sramecc.
-  switch (getTargetID()->getSramEccSetting()) {
+  // Hardwired-on SRAMECC is implied by the processor, not an ELF mode.
+  AMDGPU::TargetIDSetting SramEccSetting =
+      STI.hasFeature(AMDGPU::FeatureSRAMECCOnOffModes)
+          ? getTargetID()->getSramEccSetting()
+          : AMDGPU::TargetIDSetting::Unsupported;
+  switch (SramEccSetting) {
   case AMDGPU::TargetIDSetting::Unsupported:
-    EFlagsV4 |= ELF::EF_AMDGPU_FEATURE_SRAMECC_UNSUPPORTED_V4;
     break;
   case AMDGPU::TargetIDSetting::Any:
     EFlagsV4 |= ELF::EF_AMDGPU_FEATURE_SRAMECC_ANY_V4;
