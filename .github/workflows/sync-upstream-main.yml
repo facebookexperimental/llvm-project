@@ -1,0 +1,62 @@
+name: Sync upstream LLVM main
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-upstream-llvm-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'facebookexperimental/llvm-project' && github.ref == 'refs/heads/fbtriton-main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ secrets.LLVM_SYNC_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Fast-forward main from llvm/llvm-project
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$GH_TOKEN" ]] || { echo 'Configure LLVM_SYNC_TOKEN with Contents and Workflows write access.' >&2; exit 1; }
+          git_authenticated() {
+            git -c credential.helper= -c 'credential.helper=!gh auth git-credential' "$@"
+          }
+          mirror="$RUNNER_TEMP/llvm-main.git"
+          git_authenticated clone --bare --filter=blob:none --single-branch --branch main "https://github.com/${GH_REPO}.git" "$mirror"
+          git -C "$mirror" remote add upstream https://github.com/llvm/llvm-project.git
+          git -C "$mirror" config remote.upstream.promisor true
+          git -C "$mirror" config remote.upstream.partialclonefilter blob:none
+          git_authenticated -C "$mirror" fetch --filter=blob:none --no-tags upstream main:refs/heads/upstream-main
+          old="$(git -C "$mirror" rev-parse refs/heads/main)"
+          new="$(git -C "$mirror" rev-parse refs/heads/upstream-main)"
+          if [[ "$old" == "$new" ]]; then
+            echo "main already matches upstream: $new" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git -C "$mirror" merge-base --is-ancestor "$old" "$new" || {
+            echo 'main is not an ancestor of upstream; refusing to overwrite it.' >&2
+            exit 1
+          }
+          [[ "$(gh api "repos/${GH_REPO}/git/ref/heads/main" --jq '.object.sha')" == "$old" ]] || {
+            echo 'main moved during the sync; rerun against its new tip.' >&2
+            exit 1
+          }
+          stage="scratch/sync-main-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            status=$?
+            gh api "repos/${GH_REPO}/git/refs/heads/${stage}" --method DELETE || status=1
+            exit "$status"
+          }
+          git_authenticated -C "$mirror" push origin "refs/heads/upstream-main:refs/heads/${stage}"
+          trap cleanup EXIT
+          gh api "repos/${GH_REPO}/git/refs/heads/main" --method PATCH -f sha="$new" -F force=false
+          [[ "$(gh api "repos/${GH_REPO}/git/ref/heads/main" --jq '.object.sha')" == "$new" ]]
+          echo "Fast-forwarded main: $old to $new" >> "$GITHUB_STEP_SUMMARY"
