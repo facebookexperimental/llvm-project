@@ -17,15 +17,16 @@ jobs:
     if: github.repository == 'facebookexperimental/llvm-project' && github.ref == 'refs/heads/fbtriton-main'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      contents: write
     env:
-      GH_TOKEN: ${{ secrets.LLVM_SYNC_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Fast-forward main from llvm/llvm-project
         shell: bash
         run: |
           set -euo pipefail
-          [[ -n "$GH_TOKEN" ]] || { echo 'Configure LLVM_SYNC_TOKEN with Contents and Workflows write access.' >&2; exit 1; }
           git_authenticated() {
             git -c credential.helper= -c 'credential.helper=!gh auth git-credential' "$@"
           }
