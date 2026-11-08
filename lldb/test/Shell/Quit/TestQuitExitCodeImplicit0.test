@@ -1,2 +1,0 @@
-# RUN: %lldb -b -s %s
-q

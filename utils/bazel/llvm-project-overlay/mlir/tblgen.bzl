@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 """BUILD extensions for MLIR table generation."""
 
+load("@fbsource//tools/build_defs:fb_native_wrapper.bzl", "fb_native")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
@@ -393,7 +394,7 @@ def gentbl_filegroup(
                 **kwargs
             )
 
-    native.filegroup(
+    fb_native.filegroup(
         name = name,
         srcs = included_srcs,
         **kwargs
@@ -561,7 +562,7 @@ def gentbl_sharded_ops(
             **kwargs
         )
         all_files.append(out_file)
-    native.filegroup(
+    fb_native.filegroup(
         name = name,
         srcs = all_files,
         **kwargs
@@ -582,7 +583,7 @@ def gentbl_sharded_op_defs(name, source_file, shard_count):
     for i in range(0, shard_count):
         out_file = "shard_copy_" + str(i) + "_" + source_file
         copies.append(out_file)
-        native.genrule(
+        fb_native.genrule(
             name = name + "_shard_" + str(i),
             srcs = [source_file],
             outs = [out_file],

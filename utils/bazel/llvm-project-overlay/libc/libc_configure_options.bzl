@@ -20,14 +20,12 @@ LIBC_CONFIGURE_COMMON_OPTIONS = [
     # "LIBC_COPT_FLOAT_TO_STR_USE_DYADIC_FLOAT_LD",
     # "LIBC_COPT_FLOAT_TO_STR_USE_INT_CALC",
     # "LIBC_COPT_FLOAT_TO_STR_USE_MEGA_LONG_DOUBLE_TABLE",
-
     # Documentation in libc/src/string/memory_utils/...
     # "LIBC_COPT_MEMCPY_USE_EMBEDDED_TINY",
     # "LIBC_COPT_MEMCPY_X86_USE_REPMOVSB_FROM_SIZE",
     "LIBC_COPT_MEMCPY_X86_USE_NTA_STORES",
     "LIBC_COPT_MEMCPY_X86_USE_SOFTWARE_PREFETCHING",
     "LIBC_COPT_MEMSET_X86_USE_SOFTWARE_PREFETCHING",
-
     # Documentation in libc/docs/dev/printf_behavior.rst
     # "LIBC_COPT_PRINTF_CONV_ATLAS",
     # "LIBC_COPT_PRINTF_DISABLE_FIXED_POINT",
@@ -44,13 +42,10 @@ LIBC_CONFIGURE_COMMON_OPTIONS = [
     # "LIBC_COPT_STRTOFLOAT_DISABLE_CLINGER_FAST_PATH",
     # "LIBC_COPT_STRTOFLOAT_DISABLE_EISEL_LEMIRE",
     # "LIBC_COPT_STRTOFLOAT_DISABLE_SIMPLE_DECIMAL_CONVERSION",
-
     # Documentation in libc/src/__support/libc_assert.h
     # "LIBC_COPT_USE_C_ASSERT",
-
     # Documentation in libc/docs/configure.rst
     "LIBC_THREAD_MODE=LIBC_THREAD_MODE_PLATFORM",
-
     # Documentation in libc/src/__support/time/monotonicity.h
     "LIBC_COPT_TIMEOUT_ENSURE_MONOTONICITY",
 ]
@@ -58,7 +53,6 @@ LIBC_CONFIGURE_COMMON_OPTIONS = [
 LIBC_CONFIGURE_OVERLAY_OPTIONS = [
     # Documentation in libc/docs/dev/printf_behavior.rst
     "LIBC_COPT_STDIO_USE_SYSTEM_FILE",
-
     # Documentation in libc/src/__support/libc_errno.h
     "LIBC_ERRNO_MODE=LIBC_ERRNO_MODE_SYSTEM_INLINE",
 ]
@@ -66,10 +60,8 @@ LIBC_CONFIGURE_OVERLAY_OPTIONS = [
 LIBC_CONFIGURE_FULL_BUILD_OPTIONS = [
     # Documentation in libc/src/__support/libc_errno.h
     "LIBC_ERRNO_MODE=LIBC_ERRNO_MODE_THREAD_LOCAL",
-
     # Provide GNU-compatible aliases (e.g. __errno_location).
     "LIBC_COPT_PROVIDE_GNU_ALIASES",
-
     # Defined for targets which support threads.
     "LIBC_COPT_SUPPORT_THREADS",
 ]

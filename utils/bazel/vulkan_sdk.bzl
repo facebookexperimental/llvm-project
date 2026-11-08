@@ -15,7 +15,9 @@ def _impl(repository_ctx):
         sdk_path = repository_ctx.os.environ["VULKAN_SDK"]
         repository_ctx.symlink(sdk_path, "vulkan-sdk")
 
-        repository_ctx.file("BUILD", """
+        repository_ctx.file(
+            "BUILD",
+            """
 cc_library(
     name = "sdk",
     srcs = select({
@@ -27,15 +29,19 @@ cc_library(
         ],
     }),
     visibility = ["//visibility:public"],
-)""")
+)""",
+        )
     else:
         # Empty rule. Will fail to link for just targets that use Vulkan.
-        repository_ctx.file("BUILD", """
+        repository_ctx.file(
+            "BUILD",
+            """
 cc_library(
     name = "sdk",
     srcs = [],
     visibility = ["//visibility:public"],
-)""")
+)""",
+        )
 
 vulkan_sdk_setup = repository_rule(
     implementation = _impl,

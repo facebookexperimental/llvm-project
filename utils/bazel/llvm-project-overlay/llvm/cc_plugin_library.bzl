@@ -15,6 +15,7 @@ configure generic aspects of all generated rules such as `testonly`. Lastly,
 `kwargs` is expanded into all the `cc_binary` rules.
 """
 
+load("@fbsource//tools/build_defs:fb_native_wrapper.bzl", "fb_native")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_import", "cc_library")
 
 def cc_plugin_library(name, srcs, hdrs, include_prefix = None, strip_include_prefix = None, alwayslink = False, features = [], tags = [], testonly = False, **kwargs):
@@ -30,21 +31,12 @@ def cc_plugin_library(name, srcs, hdrs, include_prefix = None, strip_include_pre
     interface_output_name = name + "_interface_output"
     import_name = name + "_import"
     for impl_name in [dll_name, dylib_name, so_name]:
-        cc_binary(
-            name = impl_name,
-            srcs = srcs + hdrs,
-            linkshared = True,
-            linkstatic = True,
-            features = features,
-            tags = ["manual"] + tags,
-            testonly = testonly,
-            **kwargs
-        )
-    native.filegroup(
+        cc_binary(name = impl_name, srcs = srcs + hdrs, linkshared = True, linkstatic = True, features = features, tags = ["manual"] + tags, testonly = testonly, **kwargs)
+    fb_native.filegroup(
         name = interface_output_name,
         srcs = select({
-            "@platforms//os:windows": [":" + dll_name],
             "@platforms//os:macos": [":" + dylib_name],
+            "@platforms//os:windows": [":" + dll_name],
             "//conditions:default": [":" + so_name],
         }),
         output_group = "interface_library",
@@ -53,8 +45,8 @@ def cc_plugin_library(name, srcs, hdrs, include_prefix = None, strip_include_pre
         name = import_name,
         interface_library = ":" + interface_output_name,
         shared_library = select({
-            "@platforms//os:windows": ":" + dll_name,
             "@platforms//os:macos": ":" + dylib_name,
+            "@platforms//os:windows": ":" + dll_name,
             "//conditions:default": ":" + so_name,
         }),
         alwayslink = alwayslink,

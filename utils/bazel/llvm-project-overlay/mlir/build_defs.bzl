@@ -28,14 +28,7 @@ cc_headers_only = rule(
     provides = [CcInfo],
 )
 
-def mlir_c_api_cc_library(
-        name,
-        srcs = [],
-        hdrs = [],
-        deps = [],
-        header_deps = [],
-        capi_deps = [],
-        **kwargs):
+def mlir_c_api_cc_library(name, srcs = [], hdrs = [], deps = [], header_deps = [], capi_deps = [], **kwargs):
     """Macro that generates three targets for MLIR C API libraries.
 
     * A standard cc_library target ("Name"),
@@ -51,24 +44,6 @@ def mlir_c_api_cc_library(
     """
     capi_header_deps = ["%sHeaders" % d for d in capi_deps]
     capi_object_deps = ["%sObjects" % d for d in capi_deps]
-    cc_library(
-        name = name,
-        srcs = srcs,
-        hdrs = hdrs,
-        deps = deps + capi_deps + header_deps,
-        **kwargs
-    )
-    cc_library(
-        name = name + "Headers",
-        hdrs = hdrs,
-        deps = header_deps + capi_header_deps,
-        **kwargs
-    )
-    cc_library(
-        name = name + "Objects",
-        srcs = srcs,
-        hdrs = hdrs,
-        deps = deps + capi_object_deps + capi_header_deps + header_deps,
-        alwayslink = True,
-        **kwargs
-    )
+    cc_library(name = name, srcs = srcs, hdrs = hdrs, deps = deps + capi_deps + header_deps, **kwargs)
+    cc_library(name = name + "Headers", hdrs = hdrs, deps = header_deps + capi_header_deps, **kwargs)
+    cc_library(name = name + "Objects", srcs = srcs, hdrs = hdrs, deps = deps + capi_object_deps + capi_header_deps + header_deps, alwayslink = True, **kwargs)

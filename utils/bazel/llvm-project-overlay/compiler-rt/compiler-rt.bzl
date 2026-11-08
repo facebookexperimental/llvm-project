@@ -140,24 +140,12 @@ _sanitizer_darwin_base_linkopts = [
     "-lSystem",
 ]
 
-lsan_darwin_linkopts = _sanitizer_darwin_base_linkopts + [
-    "-Wl,-U," + sym
-    for sym in (_lsan_darwin_weak_symbols + _sanitizer_common_darwin_weak_symbols)
-]
+lsan_darwin_linkopts = _sanitizer_darwin_base_linkopts + ["-Wl,-U," + sym for sym in (_lsan_darwin_weak_symbols + _sanitizer_common_darwin_weak_symbols)]
 
-ubsan_darwin_linkopts = _sanitizer_darwin_base_linkopts + [
-    "-Wl,-U," + sym
-    for sym in (_ubsan_darwin_weak_symbols + _sanitizer_common_darwin_weak_symbols)
-]
+ubsan_darwin_linkopts = _sanitizer_darwin_base_linkopts + ["-Wl,-U," + sym for sym in (_ubsan_darwin_weak_symbols + _sanitizer_common_darwin_weak_symbols)]
 
 asan_darwin_linkopts = _sanitizer_darwin_base_linkopts + [
-    "-Wl,-U," + sym
-    for sym in (
-        _asan_darwin_weak_symbols +
-        _lsan_darwin_weak_symbols +
-        _ubsan_darwin_weak_symbols +
-        _sanitizer_common_darwin_weak_symbols
-    )
+    "-Wl,-U," + sym for sym in (_asan_darwin_weak_symbols + _lsan_darwin_weak_symbols + _ubsan_darwin_weak_symbols + _sanitizer_common_darwin_weak_symbols)
 ]
 
 def _get_rel_path(path_str):
@@ -191,11 +179,7 @@ def _filtered_builtins_srcs_impl(ctx):
             filtered_files.append(f)
 
     # Remove any textual sources from this list.
-    filtered_files = [
-        f
-        for f in filtered_files
-        if f.extension not in ["inc", "def"]
-    ]
+    filtered_files = [f for f in filtered_files if f.extension not in ["inc", "def"]]
 
     return [DefaultInfo(files = depset(filtered_files))]
 
@@ -242,11 +226,7 @@ filtered_builtins_srcs = rule(
 def _filtered_builtins_textual_srcs_impl(ctx):
     """Implementation of filter_builtins_textual_srcs rule."""
 
-    filtered_files = [
-        f
-        for f in ctx.files.srcs
-        if f.extension in ["inc", "def"]
-    ]
+    filtered_files = [f for f in ctx.files.srcs if f.extension in ["inc", "def"]]
 
     return [DefaultInfo(files = depset(filtered_files))]
 
