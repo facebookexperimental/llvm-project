@@ -158,9 +158,10 @@ public:
 
 class StraightLineStrengthReduce {
 public:
-  StraightLineStrengthReduce(const DataLayout *DL, DominatorTree *DT,
-                             ScalarEvolution *SE, TargetTransformInfo *TTI)
-      : DL(DL), DT(DT), SE(SE), TTI(TTI) {}
+  StraightLineStrengthReduce(const ScalarOptions &Opts, const DataLayout *DL,
+                             DominatorTree *DT, ScalarEvolution *SE,
+                             TargetTransformInfo *TTI)
+      : Opts(Opts), DL(DL), DT(DT), SE(SE), TTI(TTI) {}
 
   // SLSR candidate. Such a candidate must be in one of the forms described in
   // the header comments.
@@ -418,6 +419,7 @@ private:
   static Value *emitBump(const Candidate &Basis, const Candidate &C,
                          IRBuilder<> &Builder, const DataLayout *DL);
 
+  const ScalarOptions &Opts;
   const DataLayout *DL = nullptr;
   DominatorTree *DT = nullptr;
   ScalarEvolution *SE;
@@ -1195,7 +1197,7 @@ void StraightLineStrengthReduce::allocateCandidatesAndFindBasis(
   // doing this early we avoid calling canReuseInstruction repeatedly for the
   // same instruction. The DropList is stored on the Candidate so the flags can
   // be dropped only if this candidate is used by an executed rewrite.
-  if (!ScalarOptions::Global.enable_poison_reuse_guard ||
+  if (!Opts.enable_poison_reuse_guard ||
       canReuseInstruction(SE->getSCEV(I), I, Candidates.back().DropList)) {
     CandidateDict.add(Candidates.back());
   }
@@ -1505,7 +1507,8 @@ bool StraightLineStrengthReduceLegacyPass::runOnFunction(Function &F) {
   auto *TTI = &getAnalysis<TargetTransformInfoWrapperPass>().getTTI(F);
   auto *DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
   auto *SE = &getAnalysis<ScalarEvolutionWrapperPass>().getSE();
-  return StraightLineStrengthReduce(DL, DT, SE, TTI).runOnFunction(F);
+  const ScalarOptions &Opts = getScalarOptions(F);
+  return StraightLineStrengthReduce(Opts, DL, DT, SE, TTI).runOnFunction(F);
 }
 
 bool StraightLineStrengthReduce::runOnFunction(Function &F) {
@@ -1564,7 +1567,8 @@ StraightLineStrengthReducePass::run(Function &F, FunctionAnalysisManager &AM) {
   auto *SE = &AM.getResult<ScalarEvolutionAnalysis>(F);
   auto *TTI = &AM.getResult<TargetIRAnalysis>(F);
 
-  if (!StraightLineStrengthReduce(DL, DT, SE, TTI).runOnFunction(F))
+  const ScalarOptions &Opts = getScalarOptions(F);
+  if (!StraightLineStrengthReduce(Opts, DL, DT, SE, TTI).runOnFunction(F))
     return PreservedAnalyses::all();
 
   PreservedAnalyses PA;
