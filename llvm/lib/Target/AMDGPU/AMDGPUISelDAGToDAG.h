@@ -67,7 +67,6 @@ public:
 
   bool runOnMachineFunction(MachineFunction &MF) override;
   bool matchLoadD16FromBuildVector(SDNode *N) const;
-  bool preprocessZeroExtend(SDNode *N) const;
   bool widenRegionLoad16(SDNode *N) const;
   void PreprocessISelDAG() override;
   void Select(SDNode *N) override;
@@ -207,7 +206,8 @@ private:
                   bool *ScaleOffset = nullptr) const;
   bool SelectSMRDImm(SDValue Addr, SDValue &SBase, SDValue &Offset) const;
   bool SelectSMRDImm32(SDValue Addr, SDValue &SBase, SDValue &Offset) const;
-  bool SelectScaleOffset(SDNode *N, SDValue &Offset, bool IsSigned) const;
+  bool SelectScaleOffset(SDNode *N, SDValue &Offset, bool IsSigned,
+                         bool IsSMEM = false) const;
   bool SelectSMRDSgpr(SDNode *N, SDValue Addr, SDValue &SBase, SDValue &SOffset,
                       SDValue &CPol) const;
   bool SelectSMRDSgprImm(SDNode *N, SDValue Addr, SDValue &SBase,
@@ -241,7 +241,11 @@ private:
                        SDValue &Omod) const;
 
   bool SelectVOP3PMods(SDValue In, SDValue &Src, SDValue &SrcMods,
-                       bool IsDOT = false) const;
+                       bool IsDOT = false, bool NoOpSel0 = false) const;
+  bool SelectVOP3PModsPkFmaOpSel0(SDValue In, SDValue &Src,
+                                  SDValue &SrcMods) const;
+  bool SelectVOP3PModsPkAddMulOpSel0(SDValue In, SDValue &Src,
+                                     SDValue &SrcMods) const;
   bool SelectVOP3PModsDOT(SDValue In, SDValue &Src, SDValue &SrcMods) const;
   bool SelectVOP3PNoModsDOT(SDValue In, SDValue &Src) const;
   bool SelectVOP3PModsF32(SDValue In, SDValue &Src, SDValue &SrcMods) const;

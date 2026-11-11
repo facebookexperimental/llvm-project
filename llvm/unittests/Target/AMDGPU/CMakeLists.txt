@@ -25,7 +25,6 @@ set(LLVM_LINK_COMPONENTS
 add_llvm_target_unittest(AMDGPUTests
   AMDGPUMCExprTest.cpp
   AMDGPUUnitTests.cpp
-  CoExecInfoTest.cpp
   CSETest.cpp
   DwarfRegMappings.cpp
   ExecMayBeModifiedBeforeAnyUse.cpp
@@ -36,4 +35,5 @@ add_llvm_target_unittest(AMDGPUTests
   RCIUpdateReservedRegsTest.cpp
   UniformityAnalysisTest.cpp
   MFMACoExecRules.cpp
+  PkF32OpSelCommute.cpp
   )
