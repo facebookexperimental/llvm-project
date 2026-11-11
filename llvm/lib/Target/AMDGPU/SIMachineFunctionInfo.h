@@ -25,7 +25,6 @@
 #include "llvm/CodeGen/MIRYamlMapping.h"
 #include "llvm/CodeGen/PseudoSourceValue.h"
 #include "llvm/Support/raw_ostream.h"
-#include <memory>
 #include <optional>
 
 namespace llvm {
@@ -36,10 +35,6 @@ class SIMachineFunctionInfo;
 class SIRegisterInfo;
 class MCRegisterClass;
 using TargetRegisterClass = MCRegisterClass;
-
-namespace AMDGPU {
-struct KernelPerfReport;
-} // namespace AMDGPU
 
 class AMDGPUPseudoSourceValue : public PseudoSourceValue {
 public:
@@ -284,7 +279,6 @@ struct SIMachineFunctionInfo final : public yaml::MachineFunctionInfo {
 
   // TODO: 10 may be a better default since it's the maximum.
   unsigned Occupancy = 0;
-  unsigned MaxRP = 0;
 
   SmallVector<StringValue, 2> SpillPhysVGPRS;
   SmallVector<StringValue> WWMReservedRegs;
@@ -541,8 +535,6 @@ private:
 
   // Current recorded maximum possible occupancy.
   unsigned Occupancy;
-
-  unsigned MaxRP = 0;
 
   // Maximum number of dwords that can be clusterred during instruction
   // scheduler stage.
@@ -1215,13 +1207,6 @@ public:
     return &GWSResourcePSV;
   }
 
-  void setMaxRP(unsigned RP) {
-    if (RP > MaxRP)
-      MaxRP = RP;
-  }
-
-  unsigned getMaxRP() { return MaxRP; }
-
   unsigned getOccupancy() const {
     return Occupancy;
   }
@@ -1263,17 +1248,6 @@ public:
   unsigned getMaxNumWorkGroupsZ() const { return MaxNumWorkGroups[2]; }
 
   AMDGPU::ClusterDimsAttr getClusterDims() const { return ClusterDims; }
-
-  // Static simulator report (shared to allow MFI copy)
-  std::shared_ptr<AMDGPU::KernelPerfReport> StaticSimReport;
-
-  bool hasStaticSimReport() const { return StaticSimReport != nullptr; }
-  const AMDGPU::KernelPerfReport *getStaticSimReport() const {
-    return StaticSimReport.get();
-  }
-  void setStaticSimReport(std::shared_ptr<AMDGPU::KernelPerfReport> Report) {
-    StaticSimReport = std::move(Report);
-  }
 };
 
 } // end namespace llvm
