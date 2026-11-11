@@ -504,9 +504,6 @@ public:
   }
 
   bool hasLDSFPAtomicAddF32() const { return HasGFX8Insts; }
-  bool hasLDSFPAtomicAddF64() const {
-    return HasGFX90AInsts || HasGFX1250Insts;
-  }
 
   /// \returns true if the subtarget has the v_permlane64_b32 instruction.
   bool hasPermLane64() const { return getGeneration() >= GFX11; }
@@ -679,7 +676,9 @@ public:
     return getGeneration() == GFX12 && HasGFX1250Insts;
   }
 
-  bool hasAddPC64Inst() const { return HasGFX1250Insts; }
+  bool useAddPCI64Inst() const {
+    return hasSAddPCI64Inst() && !hasUnusableSAddPCI64();
+  }
 
   /// \returns true if the target supports expert scheduling mode 2 which relies
   /// on the compiler to insert waits to avoid hazards between VMEM and VALU
@@ -740,17 +739,6 @@ public:
 
   bool hasVOPD3() const { return HasGFX1250Insts; }
 
-  // \returns true if the target has V_{MIN|MAX}_{I|U}64 instructions.
-  bool hasIntMinMax64() const { return HasGFX1250Insts; }
-
-  // \returns true if ISel should select the native 64-bit integer min/max
-  // instructions (V_MIN/MAX_I64/U64). False in CoExec-friendly mode, where they
-  // are expanded to v_cmp_*_i64 + v_cndmask so the scheduler is not blocked by a
-  // repeat-rate-32 op. SelectionDAG only.
-  bool useVectorInt64MinMaxInsts() const {
-    return hasIntMinMax64() && !HasCoExecFriendlyISelMode;
-  }
-
   // \returns true if the target has V_PK_{MIN|MAX}3_{I|U}16 instructions.
   bool hasPkMinMax3Insts() const { return HasGFX1250Insts; }
 
@@ -773,6 +761,10 @@ public:
   bool hasCondSubInsts() const { return HasGFX12Insts; }
 
   bool hasSubClampInsts() const { return hasGFX10_3Insts(); }
+
+  bool hasAnyBVHInsts() const {
+    return hasBVHRayTracingInsts() || hasBVHDualAndBVH8Insts();
+  }
 
   bool hasAnyPackedFP32Ops() const {
     return hasPackedFP32Ops() || hasPackedFP32SingleSGPROps();
