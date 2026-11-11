@@ -202,10 +202,8 @@ define amdgpu_kernel void @s_saddo_i32(ptr addrspace(1) %out, ptr addrspace(1) %
 ; GFX9-NEXT:    v_add_i32 v1, s6, v1 clamp
 ; GFX9-NEXT:    v_cmp_ne_u32_e32 vcc, s4, v1
 ; GFX9-NEXT:    v_mov_b32_e32 v2, s4
-; GFX9-NEXT:    s_cmp_lg_u64 vcc, 0
+; GFX9-NEXT:    v_cndmask_b32_e64 v1, 0, 1, vcc
 ; GFX9-NEXT:    global_store_dword v0, v2, s[0:1]
-; GFX9-NEXT:    s_cselect_b32 s0, 1, 0
-; GFX9-NEXT:    v_mov_b32_e32 v1, s0
 ; GFX9-NEXT:    global_store_byte v0, v1, s[2:3]
 ; GFX9-NEXT:    s_endpgm
 ;
@@ -214,17 +212,15 @@ define amdgpu_kernel void @s_saddo_i32(ptr addrspace(1) %out, ptr addrspace(1) %
 ; GFX10-NEXT:    s_clause 0x1
 ; GFX10-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x34
 ; GFX10-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x24
+; GFX10-NEXT:    v_mov_b32_e32 v1, 0
 ; GFX10-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX10-NEXT:    v_add_nc_i32 v0, s6, s7 clamp
 ; GFX10-NEXT:    s_add_i32 s4, s6, s7
-; GFX10-NEXT:    v_mov_b32_e32 v1, s4
+; GFX10-NEXT:    v_mov_b32_e32 v2, s4
 ; GFX10-NEXT:    v_cmp_ne_u32_e32 vcc_lo, s4, v0
-; GFX10-NEXT:    v_mov_b32_e32 v0, 0
-; GFX10-NEXT:    s_cmp_lg_u32 vcc_lo, 0
-; GFX10-NEXT:    s_cselect_b32 s5, 1, 0
-; GFX10-NEXT:    v_mov_b32_e32 v2, s5
-; GFX10-NEXT:    global_store_dword v0, v1, s[0:1]
-; GFX10-NEXT:    global_store_byte v0, v2, s[2:3]
+; GFX10-NEXT:    v_cndmask_b32_e64 v0, 0, 1, vcc_lo
+; GFX10-NEXT:    global_store_dword v1, v2, s[0:1]
+; GFX10-NEXT:    global_store_byte v1, v0, s[2:3]
 ; GFX10-NEXT:    s_endpgm
 ;
 ; GFX11-LABEL: s_saddo_i32:
@@ -236,16 +232,12 @@ define amdgpu_kernel void @s_saddo_i32(ptr addrspace(1) %out, ptr addrspace(1) %
 ; GFX11-NEXT:    v_add_nc_i32 v0, s6, s7 clamp
 ; GFX11-NEXT:    s_add_i32 s4, s6, s7
 ; GFX11-NEXT:    s_delay_alu instid0(SALU_CYCLE_1) | instskip(NEXT) | instid1(VALU_DEP_2)
-; GFX11-NEXT:    v_mov_b32_e32 v1, s4
+; GFX11-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_mov_b32 v2, s4
 ; GFX11-NEXT:    v_cmp_ne_u32_e32 vcc_lo, s4, v0
-; GFX11-NEXT:    v_mov_b32_e32 v0, 0
-; GFX11-NEXT:    s_cmp_lg_u32 vcc_lo, 0
-; GFX11-NEXT:    s_cselect_b32 s5, 1, 0
-; GFX11-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
-; GFX11-NEXT:    v_mov_b32_e32 v2, s5
+; GFX11-NEXT:    v_cndmask_b32_e64 v0, 0, 1, vcc_lo
 ; GFX11-NEXT:    s_clause 0x1
-; GFX11-NEXT:    global_store_b32 v0, v1, s[0:1]
-; GFX11-NEXT:    global_store_b8 v0, v2, s[2:3]
+; GFX11-NEXT:    global_store_b32 v1, v2, s[0:1]
+; GFX11-NEXT:    global_store_b8 v1, v0, s[2:3]
 ; GFX11-NEXT:    s_endpgm
   %sadd = call { i32, i1 } @llvm.sadd.with.overflow.i32(i32 %a, i32 %b) nounwind
   %val = extractvalue { i32, i1 } %sadd, 0

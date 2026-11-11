@@ -38,6 +38,10 @@ class MCRegisterClass;
 using TargetRegisterClass = MCRegisterClass;
 class ScheduleHazardRecognizer;
 
+namespace AMDGPU {
+enum class AsyncStages : uint32_t;
+} // namespace AMDGPU
+
 constexpr unsigned DefaultMemoryClusterDWordsLimit = 8;
 
 /// Mark the MMO of a uniform load if there are no potentially clobbering stores
@@ -63,6 +67,13 @@ struct V2PhysSCopyInfo {
 /// never written to by other threads.
 static const MachineMemOperand::Flags MOThreadPrivate =
     MachineMemOperand::MOTargetFlag4;
+
+/// Use two MMO flags to encode the 2-bit cache fill size field for GFX13+
+static const MachineMemOperand::Flags MOCFSB0 =
+    MachineMemOperand::MOTargetFlag5;
+
+static const MachineMemOperand::Flags MOCFSB1 =
+    MachineMemOperand::MOTargetFlag6;
 
 /// Utility to store machine instructions worklist.
 struct SIInstrWorklist {
@@ -508,23 +519,11 @@ public:
     return SIInstrFlags::isSALU(get(Opcode));
   }
 
-  /// Get next real instruction, skipping debug/meta/implicit-def instructions.
-  static MachineInstr *getNextRealInstr(MachineInstr *MI);
-
-  /// LDSDMA instructions act as both VALU and memory instructions, thus
-  /// we also tag them as VALU. By setting \p AllowLDSDMA to false, this will
-  /// return false for LDSDMA instructions.
   static bool isVALU(const MachineInstr &MI, bool AllowLDSDMA) {
     if (!AllowLDSDMA && isLDSDMA(MI))
       return false;
 
     return SIInstrFlags::isVALU(MI);
-  }
-
-  // Downstream convenience overload preserving the pre-refactor behavior
-  // (LDSDMA counted as VALU). Forwards with AllowLDSDMA=true.
-  static bool isVALU(const MachineInstr &MI) {
-    return isVALU(MI, /*AllowLDSDMA=*/true);
   }
 
   /// LDSDMA instructions act as both VALU and memory instructions, thus
@@ -879,6 +878,24 @@ public:
            Opc != AMDGPU::TENSOR_STORE_FROM_LDS_d2 &&
            Opc != AMDGPU::TENSOR_STORE_FROM_LDS_d4;
   }
+
+  bool isNonAsyncLdsDmaWrite(const MachineInstr &MI) const {
+    return mayWriteLDSThroughDMA(MI) && !isAsync(MI);
+  }
+
+  /// \returns true if \p MI creates an async operation.
+  bool isAsync(const MachineInstr &MI) const {
+    if (!isLDSDMA(MI))
+      return false;
+    if (usesASYNC_CNT(MI) || usesTENSOR_CNT(MI))
+      return true;
+    const MachineOperand *Async = getNamedOperand(MI, AMDGPU::OpName::IsAsync);
+    return Async && (Async->getImm());
+  }
+
+  /// \returns the asyncmark stage that the async operation initiated by \p MI
+  /// belongs to, or no stage if \p MI does not initiate an async operation.
+  AMDGPU::AsyncStages getAsyncStage(const MachineInstr &MI) const;
 
   static bool isSBarrierSCCWrite(unsigned Opcode) {
     return Opcode == AMDGPU::S_BARRIER_LEAVE ||
@@ -1282,33 +1299,6 @@ public:
     return Opcode == AMDGPU::SCHED_GROUP_BARRIER || Opcode == AMDGPU::IGLP_OPT;
   }
 
-  /// DS latency modes. The latency of an individual DS load/store instruction
-  /// is variable. Some of the major sources that cause this variation are hard
-  /// to model at compile time. For example, if we have multiple LDS
-  /// instructions in flight, one of these may take longer than the other due to
-  /// a bank conflict. Given that these bank conflicts can occur across waves,
-  /// it is hard to accurately model this. This is compounded given the presence
-  /// of the LDS FIFO -- if an earlier LDS instruction has, for example, a bank
-  /// conflict, this will impact the latency of the current LDS instruction.
-  ///
-  /// Given these complexities, we offer different DSLatencyModes for kernels to
-  /// express the average latency for LDS instructions in the kernel. We expect
-  /// that for kernels with many closely packed LDS isntructions, the average
-  /// latency for LDS instructions will be relatively high. Thus we should use
-  /// DSLatencyMode::Loaded or DSLatencyMode::Overloaded.
-  enum class DSLatencyMode {
-    Fast,      // Use default/pinged latency (no contention)
-    Loaded,    // Use loaded latency (moderate contention, 3x latency)
-    Overloaded // Use overloaded latency (high contention, 5x latency)
-  };
-
-  /// \p returns the DS instruction latency multiplier based on the selected
-  /// DSLatencyMode. \p returns 1 if the default
-  /// scheduling model latency should be used (pinged mode).
-  /// Checks the function attribute first, then if using coexec scheduler
-  /// defaults to "loaded", then falls back to the global command line option.
-  static unsigned getDSLatencyMultiplier(const MachineFunction &MF);
-
   static unsigned getNonSoftWaitcntOpcode(unsigned Opcode) {
     switch (Opcode) {
     case AMDGPU::S_WAITCNT_soft:
@@ -1608,13 +1598,6 @@ public:
                                    const MachineInstr &MI, unsigned SrcN,
                                    const MachineOperand *MO = nullptr) const;
 
-  /// Check if \p MI has legal GFX950 v_pk_fma op_sel.
-  bool isLegalPkFMAF32OpSel(const MachineInstr &MI) const;
-
-  /// Decompose a GFX950 v_pk_fma_f32 with invalid op_sel into two independent
-  /// scalar V_FMA_F32_e64 instructions, replacing \p MI.
-  void decomposePkFMAF32(MachineInstr &MI, MachineRegisterInfo &MRI) const;
-
   /// Legalize operands in \p MI by either commuting it or inserting a
   /// copy of src1.
   void legalizeOperandsVOP2(MachineRegisterInfo &MRI, MachineInstr &MI) const;
@@ -1858,19 +1841,10 @@ public:
                                       LiveIntervals *LIS = nullptr,
                                       VirtRegMap *VRM = nullptr) const override;
 
-  // Silence a hidden overloaded virtual function warning.
-  using TargetInstrInfo::getInstrLatency;
-
   unsigned getInstrLatency(const InstrItineraryData *ItinData,
                            const MachineInstr &MI,
                            unsigned *PredCost = nullptr) const override;
 
-  /// \returns the latency of a given instruction \p MI. This implements custom
-  /// overrides for certain cases (e.g. when using dfifferent DSLatencyModes to
-  /// express increased LDS resource contention).
-  unsigned getInstrLatency(const MachineInstr &MI) const;
-
-  unsigned getSchedCyclesForCopy(const MachineInstr &MI) const override;
   unsigned getBlockingCycles(const MachineInstr &MI) const;
 
   /// GFX1250 blocking-cycles table lookup with no occupancy subtarget gate.

@@ -127,14 +127,15 @@ define amdgpu_kernel void @get_state_dynamic_idx(ptr addrspace(1) %out, i32 %idx
 ; GISEL-NEXT:    v_nop
 ; GISEL-NEXT:    global_prefetch_b8 v0, s[64:65] scope:SCOPE_SE
 ; GISEL-NEXT:    s_load_b96 s[0:2], s[4:5], 0x0 nv
+; GISEL-NEXT:    v_mov_b32_e32 v1, 0
 ; GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GISEL-NEXT:    s_add_co_u32 s2, 1, s2
 ; GISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1) | instskip(SKIP_2) | instid1(SALU_CYCLE_2)
 ; GISEL-NEXT:    s_and_b32 m0, s2, 63
 ; GISEL-NEXT:    s_get_barrier_state s2, m0
 ; GISEL-NEXT:    s_wait_kmcnt 0x0
-; GISEL-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, s2
-; GISEL-NEXT:    global_store_b32 v0, v1, s[0:1]
+; GISEL-NEXT:    v_mov_b32_e32 v0, s2
+; GISEL-NEXT:    global_store_b32 v1, v0, s[0:1]
 ; GISEL-NEXT:    s_endpgm
   %bar = getelementptr [4 x target("amdgcn.named.barrier", 0)], ptr addrspace(15) @bars, i32 0, i32 %idx
   %state = call i32 @llvm.amdgcn.s.get.named.barrier.state(ptr addrspace(15) %bar)
