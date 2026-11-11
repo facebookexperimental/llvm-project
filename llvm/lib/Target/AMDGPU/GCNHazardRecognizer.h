@@ -133,10 +133,6 @@ private:
   /// instructions, return the number of stall cycles until one shadow clears.
   unsigned checkMultiShadowHazard(const MachineInstr &MI) const;
 
-  /// Check if a wide COPY has enough consecutive co-exec slots.
-  /// Returns stall cycles if insufficient slots are available.
-  unsigned checkWideCopyCoExecSlots(const MachineInstr &MI) const;
-
   /// Update WMMA window state when a WMMA instruction is emitted.
   void updateWMMAWindowState(const MachineInstr &MI);
 
@@ -246,7 +242,6 @@ private:
                               const MachineInstr &MI) const;
   bool fixShift64HighRegBug(MachineInstr *MI);
   bool fixVPermPk16Hazard(MachineInstr *MI);
-  bool fixPkF32InvalidOpSel(MachineInstr *MI);
   bool fixVALUMaskWriteHazard(MachineInstr *MI);
   bool fixRequiredExportPriority(MachineInstr *MI);
   bool fixGetRegWaitIdle(MachineInstr *MI);
@@ -264,11 +259,6 @@ private:
   int checkMAIHazards(MachineInstr *MI) const;
   int checkMAIHazards908(MachineInstr *MI) const;
   int checkMAIHazards90A(MachineInstr *MI) const;
-
-  /// Check for VALU-SGPR to SALU hazard.
-  /// Returns cycles until SALU can be scheduled without hazard.
-  unsigned checkVALUSGPRHazard(const MachineInstr &MI) const;
-
   /// Wait states needed when MFMA \p Reader reads as src2/C a register that the
   /// earlier MFMA \p Writer wrote, taken from the wait state tables for
   /// overlapping register tuples.
@@ -327,19 +317,9 @@ public:
   // Co-execution Window Queries
   //===--------------------------------------------------------------------===//
 
-  /// Returns true if currently inside a WMMA co-execution window.
-  bool inCoExecWindow() const { return CurrentCoExecStage.has_value(); }
-
-  /// Returns the current stage within the co-execution window, or nullopt.
-  std::optional<unsigned> getCurrentCoExecStage() const {
-    return CurrentCoExecStage;
-  }
-
-  /// Returns the active co-execution info (slot masks, preferences).
-  const AMDGPU::CoExecInfo &getActiveCoExecInfo() const {
-    return ActiveCoExecInfo;
-  }
-
+  /// Get the CoExecMask for a given instruction.
+  static AMDGPU::CoExecMaskT getCoExecMaskForMI(const MachineInstr &MI,
+                                                const SIInstrInfo &TII);
   // We can only issue one instruction per cycle.
   bool atIssueLimit() const override { return true; }
   void EmitInstruction(SUnit *SU) override;
