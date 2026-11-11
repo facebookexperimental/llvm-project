@@ -14,8 +14,6 @@
 
 #include "AMDGPUMCInstLower.h"
 #include "AMDGPUAsmPrinter.h"
-#include "AMDGPUMachineFunctionInfo.h"
-#include "AMDGPUStaticSimulator.h"
 #include "MCTargetDesc/AMDGPUInstPrinter.h"
 #include "MCTargetDesc/AMDGPUMCExpr.h"
 #include "MCTargetDesc/AMDGPUMCTargetDesc.h"
@@ -32,26 +30,13 @@
 #include "llvm/MC/MCObjectStreamer.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/Support/AMDGPUAddrSpace.h"
-#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/AMDGPUAsyncStages.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Format.h"
 #include <algorithm>
-#include <cstdlib>
 
 using namespace llvm;
-
-static cl::opt<bool> EnableSimAnnotations(
-    "amdgpu-static-sim-inline",
-    cl::desc("Enable inline assembly annotations (per-instruction sim comments)"),
-    cl::init(false), cl::Hidden);
-
-/// Check if inline annotations are enabled via cl::opt or env var.
-static bool isInlineAnnotationEnabled() {
-  if (const char *EnvVal = std::getenv("AMDGPU_STATIC_SIM_INLINE"))
-    return StringRef(EnvVal) == "1";
-  return EnableSimAnnotations;
-}
 
 #include "AMDGPUGenMCPseudoLowering.inc"
 
@@ -357,83 +342,6 @@ void AMDGPUAsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
   }
 
-  auto emitSimAnnotation = [&]() {
-    if (!isInlineAnnotationEnabled())
-      return;
-
-    const SIMachineFunctionInfo *MFI = MF->getInfo<SIMachineFunctionInfo>();
-    if (!MFI)
-      return;
-
-    auto Report = MFI->getStaticSimReport();
-    if (!Report)
-      return;
-
-    auto It = Report->PerInstr.find(MI);
-    if (It == Report->PerInstr.end())
-      return;
-
-    const AMDGPU::InstrSimInfo &Info = It->second;
-
-    bool HasCacheHit = Info.CachePattern.find('$') != std::string::npos;
-    bool HasBankConflict = Info.Reason == AMDGPU::StallReason::REG_BANK;
-
-    if (Info.StallCycles == 0 && !Info.InWMMAWindow && !Info.WasFused &&
-        !Info.WasExposed && !Info.WasMasked && !Info.IsWMMA && !HasCacheHit)
-      return;
-
-    std::string Comment;
-    raw_string_ostream OS(Comment);
-    bool HasContent = false;
-
-    OS << "Sim:";
-
-    if (Info.IsWMMA && !Info.WMMAPattern.empty()) {
-      OS << " " << Info.WMMAPattern;
-      HasContent = true;
-    }
-
-    if (Info.WasFused) {
-      OS << " Fused";
-      HasContent = true;
-    } else if (Info.WasExposed) {
-      if (Info.WasMasked)
-        OS << " MSB_Exposed(masked)";
-      else
-        OS << " MSB_Exposed";
-      HasContent = true;
-    }
-
-    if (Info.InWMMAWindow && !Info.IsWMMA) {
-      OS << " WMMA[" << (unsigned)Info.WMMAStage << "/"
-         << (unsigned)Info.WMMATotalWindow << "] " << Info.getStageName();
-      if (Info.CoExecuted)
-        OS << " OK";
-      else if (Info.StallCycles > 0 &&
-               Info.Reason == AMDGPU::StallReason::COEXEC_BLOCKED) {
-        OS << " BLOCKED";
-      }
-      HasContent = true;
-    }
-
-    if (Info.StallCycles > 0) {
-      if (HasContent)
-        OS << " |";
-      OS << " Stall:" << Info.StallCycles;
-      if (Info.Reason != AMDGPU::StallReason::NONE &&
-          Info.Reason != AMDGPU::StallReason::COEXEC_BLOCKED)
-        OS << " [" << Info.getReasonString() << "]";
-    }
-
-    if (!Info.CachePattern.empty() && (HasCacheHit || HasBankConflict)) {
-      OS << " Cache" << Info.CachePattern;
-      HasContent = true;
-    }
-
-    OutStreamer->emitRawComment(Comment);
-  };
-  emitSimAnnotation();
-
   const GCNSubtarget &STI = MF->getSubtarget<GCNSubtarget>();
   AMDGPUMCInstLower MCInstLowering(OutContext, STI, *this);
 
@@ -468,15 +376,25 @@ void AMDGPUAsmPrinter::emitInstruction(const MachineInstr *MI) {
     }
 
     if (MI->getOpcode() == AMDGPU::ASYNCMARK) {
-      if (isVerbose())
-        OutStreamer->emitRawComment(" asyncmark");
+      if (isVerbose()) {
+        std::string Comment;
+        raw_string_ostream OS(Comment);
+        OS << " asyncmark(stages="
+           << AMDGPU::asyncStagesFromMaskOperand(MI->getOperand(0).getImm())
+           << ')';
+        OutStreamer->emitRawComment(Comment);
+      }
       return;
     }
 
     if (MI->getOpcode() == AMDGPU::WAIT_ASYNCMARK) {
       if (isVerbose()) {
-        OutStreamer->emitRawComment(" wait_asyncmark(" +
-                                    Twine(MI->getOperand(0).getImm()) + ")");
+        std::string Comment;
+        raw_string_ostream OS(Comment);
+        OS << " wait_asyncmark(" << MI->getOperand(0).getImm() << ", stages="
+           << AMDGPU::asyncStagesFromMaskOperand(MI->getOperand(1).getImm())
+           << ')';
+        OutStreamer->emitRawComment(Comment);
       }
       return;
     }
@@ -544,7 +462,7 @@ void AMDGPUAsmPrinter::emitInstruction(const MachineInstr *MI) {
 
     if (isVerbose() && (MI->getOpcode() == AMDGPU::S_SET_VGPR_MSB ||
                         (MI->getOpcode() == AMDGPU::S_SETREG_IMM32_B32 &&
-                         STI.has1024AddressableVGPRs()))) {
+                         STI.hasVGPRMSBs()))) {
       std::optional<unsigned> V;
       if (MI->getOpcode() == AMDGPU::S_SETREG_IMM32_B32)
         V = AMDGPU::convertSetRegImmToVgprMSBs(*MI,
