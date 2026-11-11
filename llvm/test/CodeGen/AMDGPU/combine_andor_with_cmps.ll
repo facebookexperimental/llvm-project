@@ -475,8 +475,6 @@ define amdgpu_gfx void @test34(i32 inreg %arg1, i32 inreg %arg2) {
 ; GCN-NEXT:    s_min_i32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmpk_lt_i32 s0, 0x3e9
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -496,8 +494,6 @@ define amdgpu_gfx void @test35(i32 inreg %arg1, i32 inreg %arg2) {
 ; GCN-NEXT:    s_max_i32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmpk_gt_i32 s0, 0x3e8
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -517,8 +513,6 @@ define amdgpu_gfx void @test36(i32 inreg %arg1, i32 inreg %arg2, i32 inreg %arg3
 ; GCN-NEXT:    s_min_u32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmp_lt_u32 s0, s6
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -538,8 +532,6 @@ define amdgpu_gfx void @test37(i32 inreg %arg1, i32 inreg %arg2, i32 inreg %arg3
 ; GCN-NEXT:    s_max_i32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmp_ge_i32 s0, s6
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -559,8 +551,6 @@ define amdgpu_gfx void @test38(i32 inreg %arg1, i32 inreg %arg2) {
 ; GCN-NEXT:    s_max_u32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmpk_lt_u32 s0, 0x3e9
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -580,8 +570,6 @@ define amdgpu_gfx void @test39(i32 inreg %arg1, i32 inreg %arg2) {
 ; GCN-NEXT:    s_min_i32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmpk_gt_i32 s0, 0x3e7
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -601,8 +589,6 @@ define amdgpu_gfx void @test40(i32 inreg %arg1, i32 inreg %arg2, i32 inreg %arg3
 ; GCN-NEXT:    s_max_i32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmp_le_i32 s0, s6
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -622,8 +608,6 @@ define amdgpu_gfx void @test41(i32 inreg %arg1, i32 inreg %arg2, i32 inreg %arg3
 ; GCN-NEXT:    s_min_u32 s0, s4, s5
 ; GCN-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
 ; GCN-NEXT:    s_cmp_ge_u32 s0, s6
-; GCN-NEXT:    s_cselect_b32 s0, -1, 0
-; GCN-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GCN-NEXT:    s_cselect_b32 s0, 1, 0
 ; GCN-NEXT:    v_mov_b32_e32 v2, s0
 ; GCN-NEXT:    global_store_b8 v[0:1], v2, off dlc
@@ -1342,11 +1326,11 @@ define <2 x i1> @test85(<2 x half> %arg1, <2 x half> %arg2, <2 x half> %arg3) {
 ; GFX11-TRUE16-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v0, v0, v0
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v1, v1, v1
-; GFX11-TRUE16-NEXT:    v_pk_min_f16 v1, v0, v1
-; GFX11-TRUE16-NEXT:    v_cmp_le_f16_e32 vcc_lo, v1.l, v2.l
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v0, 0, 1, vcc_lo
-; GFX11-TRUE16-NEXT:    v_cmp_le_f16_e32 vcc_lo, v1.h, v2.h
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v1, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_pk_min_f16 v0, v0, v1
+; GFX11-TRUE16-NEXT:    v_cmp_le_f16_e32 vcc_lo, v0.l, v2.l
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v0.l, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_cmp_le_f16_e32 vcc_lo, v0.h, v2.h
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v1.l, 0, 1, vcc_lo
 ; GFX11-TRUE16-NEXT:    s_setpc_b64 s[30:31]
 ;
 ; GFX11-FAKE16-LABEL: test85:
@@ -1396,11 +1380,11 @@ define <2 x i1> @test86(<2 x half> %arg1, <2 x half> %arg2, <2 x half> %arg3) {
 ; GFX11-TRUE16-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v0, v0, v0
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v1, v1, v1
-; GFX11-TRUE16-NEXT:    v_pk_max_f16 v1, v0, v1
-; GFX11-TRUE16-NEXT:    v_cmp_gt_f16_e32 vcc_lo, v1.l, v2.l
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v0, 0, 1, vcc_lo
-; GFX11-TRUE16-NEXT:    v_cmp_gt_f16_e32 vcc_lo, v1.h, v2.h
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v1, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_pk_max_f16 v0, v0, v1
+; GFX11-TRUE16-NEXT:    v_cmp_gt_f16_e32 vcc_lo, v0.l, v2.l
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v0.l, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_cmp_gt_f16_e32 vcc_lo, v0.h, v2.h
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v1.l, 0, 1, vcc_lo
 ; GFX11-TRUE16-NEXT:    s_setpc_b64 s[30:31]
 ;
 ; GFX11-FAKE16-LABEL: test86:
@@ -1492,11 +1476,11 @@ define <2 x i1> @test88(<2 x half> %arg1, <2 x half> %arg2, <2 x half> %arg3) {
 ; GFX11-TRUE16-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v0, v0, v0
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v1, v1, v1
-; GFX11-TRUE16-NEXT:    v_pk_min_f16 v1, v0, v1
-; GFX11-TRUE16-NEXT:    v_cmp_nle_f16_e32 vcc_lo, v1.l, v2.l
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v0, 0, 1, vcc_lo
-; GFX11-TRUE16-NEXT:    v_cmp_nle_f16_e32 vcc_lo, v1.h, v2.h
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v1, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_pk_min_f16 v0, v0, v1
+; GFX11-TRUE16-NEXT:    v_cmp_nle_f16_e32 vcc_lo, v0.l, v2.l
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v0.l, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_cmp_nle_f16_e32 vcc_lo, v0.h, v2.h
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v1.l, 0, 1, vcc_lo
 ; GFX11-TRUE16-NEXT:    s_setpc_b64 s[30:31]
 ;
 ; GFX11-FAKE16-LABEL: test88:
@@ -1630,11 +1614,11 @@ define <2 x i1> @test91(<2 x half> %arg1, <2 x half> %arg2, <2 x half> %arg3) {
 ; GFX11-TRUE16-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v0, v0, v0
 ; GFX11-TRUE16-NEXT:    v_pk_max_f16 v1, v1, v1
-; GFX11-TRUE16-NEXT:    v_pk_max_f16 v1, v0, v1
-; GFX11-TRUE16-NEXT:    v_cmp_nge_f16_e32 vcc_lo, v1.l, v2.l
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v0, 0, 1, vcc_lo
-; GFX11-TRUE16-NEXT:    v_cmp_nge_f16_e32 vcc_lo, v1.h, v2.h
-; GFX11-TRUE16-NEXT:    v_cndmask_b32_e64 v1, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_pk_max_f16 v0, v0, v1
+; GFX11-TRUE16-NEXT:    v_cmp_nge_f16_e32 vcc_lo, v0.l, v2.l
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v0.l, 0, 1, vcc_lo
+; GFX11-TRUE16-NEXT:    v_cmp_nge_f16_e32 vcc_lo, v0.h, v2.h
+; GFX11-TRUE16-NEXT:    v_cndmask_b16 v1.l, 0, 1, vcc_lo
 ; GFX11-TRUE16-NEXT:    s_setpc_b64 s[30:31]
 ;
 ; GFX11-FAKE16-LABEL: test91:
