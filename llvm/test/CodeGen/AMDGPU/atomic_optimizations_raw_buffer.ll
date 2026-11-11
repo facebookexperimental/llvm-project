@@ -295,10 +295,11 @@ define amdgpu_kernel void @add_i32_constant(ptr addrspace(1) %out, ptr addrspace
 ; GFX13W64-NEXT:    buffer_atomic_add_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W64-NEXT:  .LBB0_2:
 ; GFX13W64-NEXT:    s_or_b64 exec, exec, s[0:1]
+; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W64-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W64-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13W64-NEXT:    v_mad_u32_u24 v0, 5, v0, s2
 ; GFX13W64-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W64-NEXT:    global_store_b32 v1, v0, s[0:1]
@@ -323,10 +324,11 @@ define amdgpu_kernel void @add_i32_constant(ptr addrspace(1) %out, ptr addrspace
 ; GFX13W32-NEXT:    buffer_atomic_add_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W32-NEXT:  .LBB0_2:
 ; GFX13W32-NEXT:    s_or_b32 exec_lo, exec_lo, s0
+; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W32-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W32-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13W32-NEXT:    v_mad_u32_u24 v0, 5, v0, s2
 ; GFX13W32-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W32-NEXT:    global_store_b32 v1, v0, s[0:1]
@@ -629,13 +631,14 @@ define amdgpu_kernel void @add_i32_uniform(ptr addrspace(1) %out, ptr addrspace(
 ; GFX13W64-NEXT:    buffer_atomic_add_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W64-NEXT:  .LBB1_2:
 ; GFX13W64-NEXT:    s_or_b64 exec, exec, s[0:1]
+; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    s_wait_loadcnt 0x0
-; GFX13W64-NEXT:    v_readfirstlane_b32 s0, v1
-; GFX13W64-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
-; GFX13W64-NEXT:    v_mov_b32_e32 v2, 0
+; GFX13W64-NEXT:    v_readfirstlane_b32 s2, v1
 ; GFX13W64-NEXT:    s_wait_kmcnt 0x0
-; GFX13W64-NEXT:    v_mad_co_u64_u32 v[0:1], null, s6, v0, s[0:1]
-; GFX13W64-NEXT:    global_store_b32 v2, v0, s[2:3]
+; GFX13W64-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13W64-NEXT:    v_mad_co_u64_u32 v[0:1], null, s6, v0, s[2:3]
+; GFX13W64-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W64-NEXT:    global_store_b32 v1, v0, s[0:1]
 ; GFX13W64-NEXT:    s_endpgm
 ;
 ; GFX13W32-LABEL: add_i32_uniform:
@@ -658,13 +661,14 @@ define amdgpu_kernel void @add_i32_uniform(ptr addrspace(1) %out, ptr addrspace(
 ; GFX13W32-NEXT:    buffer_atomic_add_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W32-NEXT:  .LBB1_2:
 ; GFX13W32-NEXT:    s_or_b32 exec_lo, exec_lo, s1
+; GFX13W32-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_wait_loadcnt 0x0
-; GFX13W32-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W32-NEXT:    s_load_b64 s[4:5], s[4:5], 0x24 nv
-; GFX13W32-NEXT:    v_mov_b32_e32 v2, 0
+; GFX13W32-NEXT:    v_readfirstlane_b32 s4, v1
 ; GFX13W32-NEXT:    s_wait_kmcnt 0x0
-; GFX13W32-NEXT:    v_mad_co_u64_u32 v[0:1], null, s0, v0, s[2:3]
-; GFX13W32-NEXT:    global_store_b32 v2, v0, s[4:5]
+; GFX13W32-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13W32-NEXT:    v_mad_co_u64_u32 v[0:1], null, s0, v0, s[4:5]
+; GFX13W32-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W32-NEXT:    global_store_b32 v1, v0, s[2:3]
 ; GFX13W32-NEXT:    s_endpgm
 entry:
   %old = call i32 @llvm.amdgcn.raw.ptr.buffer.atomic.add(i32 %additive, ptr addrspace(8) %inout, i32 0, i32 0, i32 0)
@@ -1076,10 +1080,11 @@ define amdgpu_kernel void @add_i32_varying_vdata(ptr addrspace(1) %out, ptr addr
 ; GFX13W64-NEXT:    buffer_atomic_add_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W64-NEXT:  .LBB2_4:
 ; GFX13W64-NEXT:    s_or_b64 exec, exec, s[0:1]
+; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W64-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W64-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13W64-NEXT:    v_add_nc_u32_e32 v0, s2, v0
 ; GFX13W64-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W64-NEXT:    global_store_b32 v1, v0, s[0:1]
@@ -1116,9 +1121,10 @@ define amdgpu_kernel void @add_i32_varying_vdata(ptr addrspace(1) %out, ptr addr
 ; GFX13W32-NEXT:    buffer_atomic_add_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W32-NEXT:  .LBB2_4:
 ; GFX13W32-NEXT:    s_or_b32 exec_lo, exec_lo, s1
+; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W32-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
+; GFX13W32-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13W32-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_add_nc_u32 v0, s2, v0
 ; GFX13W32-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W32-NEXT:    global_store_b32 v1, v0, s[0:1]
@@ -1555,10 +1561,10 @@ define amdgpu_kernel void @sub_i32_constant(ptr addrspace(1) %out, ptr addrspace
 ; GFX13W64-NEXT:    buffer_atomic_sub_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W64-NEXT:  .LBB4_2:
 ; GFX13W64-NEXT:    s_or_b64 exec, exec, s[0:1]
+; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W64-NEXT:    v_readfirstlane_b32 s2, v1
 ; GFX13W64-NEXT:    v_mul_u32_u24_e32 v0, 5, v0
-; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    v_mov_b32_e32 v1, 0
 ; GFX13W64-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13W64-NEXT:    v_sub_nc_u32_e32 v0, s2, v0
@@ -1585,10 +1591,10 @@ define amdgpu_kernel void @sub_i32_constant(ptr addrspace(1) %out, ptr addrspace
 ; GFX13W32-NEXT:    buffer_atomic_sub_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W32-NEXT:  .LBB4_2:
 ; GFX13W32-NEXT:    s_or_b32 exec_lo, exec_lo, s0
+; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W32-NEXT:    v_readfirstlane_b32 s2, v1
 ; GFX13W32-NEXT:    v_mul_u32_u24_e32 v0, 5, v0
-; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13W32-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_sub_nc_u32 v0, s2, v0
 ; GFX13W32-NEXT:    s_wait_kmcnt 0x0
@@ -1898,14 +1904,14 @@ define amdgpu_kernel void @sub_i32_uniform(ptr addrspace(1) %out, ptr addrspace(
 ; GFX13W64-NEXT:    buffer_atomic_sub_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W64-NEXT:  .LBB5_2:
 ; GFX13W64-NEXT:    s_or_b64 exec, exec, s[0:1]
+; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W64-NEXT:    v_mul_lo_u32 v0, s6, v0
 ; GFX13W64-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W64-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W64-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13W64-NEXT:    v_sub_nc_u32_e32 v0, s2, v0
-; GFX13W64-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W64-NEXT:    global_store_b32 v1, v0, s[0:1]
 ; GFX13W64-NEXT:    s_endpgm
 ;
@@ -1929,14 +1935,14 @@ define amdgpu_kernel void @sub_i32_uniform(ptr addrspace(1) %out, ptr addrspace(
 ; GFX13W32-NEXT:    buffer_atomic_sub_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W32-NEXT:  .LBB5_2:
 ; GFX13W32-NEXT:    s_or_b32 exec_lo, exec_lo, s1
+; GFX13W32-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W32-NEXT:    v_mul_lo_u32 v0, s0, v0
 ; GFX13W32-NEXT:    s_wait_loadcnt 0x0
-; GFX13W32-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
-; GFX13W32-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_sub_nc_u32 v0, s2, v0
-; GFX13W32-NEXT:    s_wait_kmcnt 0x0
-; GFX13W32-NEXT:    global_store_b32 v1, v0, s[0:1]
+; GFX13W32-NEXT:    v_readfirstlane_b32 s0, v1
+; GFX13W32-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13W32-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_sub_nc_u32 v0, s0, v0
+; GFX13W32-NEXT:    global_store_b32 v1, v0, s[2:3]
 ; GFX13W32-NEXT:    s_endpgm
 entry:
   %old = call i32 @llvm.amdgcn.raw.ptr.buffer.atomic.sub(i32 %subitive, ptr addrspace(8) %inout, i32 0, i32 0, i32 0)
@@ -2350,10 +2356,11 @@ define amdgpu_kernel void @sub_i32_varying_vdata(ptr addrspace(1) %out, ptr addr
 ; GFX13W64-NEXT:    buffer_atomic_sub_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W64-NEXT:  .LBB6_4:
 ; GFX13W64-NEXT:    s_or_b64 exec, exec, s[0:1]
+; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W64-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W64-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W64-NEXT:    v_mov_b32_e32 v1, 0
+; GFX13W64-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13W64-NEXT:    v_sub_nc_u32_e32 v0, s2, v0
 ; GFX13W64-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W64-NEXT:    global_store_b32 v1, v0, s[0:1]
@@ -2390,9 +2397,10 @@ define amdgpu_kernel void @sub_i32_varying_vdata(ptr addrspace(1) %out, ptr addr
 ; GFX13W32-NEXT:    buffer_atomic_sub_u32 v1, off, s[8:11], null th:TH_ATOMIC_RETURN
 ; GFX13W32-NEXT:  .LBB6_4:
 ; GFX13W32-NEXT:    s_or_b32 exec_lo, exec_lo, s1
+; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13W32-NEXT:    s_wait_loadcnt 0x0
 ; GFX13W32-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13W32-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
+; GFX13W32-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13W32-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_sub_nc_u32 v0, s2, v0
 ; GFX13W32-NEXT:    s_wait_kmcnt 0x0
 ; GFX13W32-NEXT:    global_store_b32 v1, v0, s[0:1]
