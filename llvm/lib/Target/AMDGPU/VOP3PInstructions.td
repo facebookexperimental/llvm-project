@@ -1586,6 +1586,32 @@ let isCommutable = 1, isReMaterializable = 1 in {
   } // End SubtargetPredicate = HasPackedFP64SingleSGPROps, SchedRW = [WriteDouble]
 } // End isCommutable = 1, isReMaterializable = 1
 
+// GFX950 v_pk_{add,mul}_f32: opsel[1:0] == 2'b10 is invalid. These patterns
+// reject a src1 that needs OP_SEL_0, so the commuted form puts that operand in
+// src0. Otherwise, the default pattern gives the valid opsel[1:0] == 2'b11.
+let SubtargetPredicate = HasGFX950Insts, AddedComplexity = 1 in {
+def : GCNPat<
+  (v2f32 (any_fadd (VOP3PMods v2f32:$src0, i32:$src0_mods),
+                   (VOP3PModsPkAddMulOpSel0 v2f32:$src1, i32:$src1_mods))),
+  (V_PK_ADD_F32 $src0_mods, $src0, $src1_mods, $src1)
+>;
+
+def : GCNPat<
+  (v2f32 (any_fmul (VOP3PMods v2f32:$src0, i32:$src0_mods),
+                   (VOP3PModsPkAddMulOpSel0 v2f32:$src1, i32:$src1_mods))),
+  (V_PK_MUL_F32 $src0_mods, $src0, $src1_mods, $src1)
+>;
+
+// v_pk_fma_f32: Don't fold a swizzle that needs OP_SEL_0 into src1 or src2; it
+// is materialized separately instead.
+def : GCNPat<
+  (v2f32 (any_fma (VOP3PMods v2f32:$src0, i32:$src0_mods),
+                  (VOP3PModsPkFmaOpSel0 v2f32:$src1, i32:$src1_mods),
+                  (VOP3PModsPkFmaOpSel0 v2f32:$src2, i32:$src2_mods))),
+  (V_PK_FMA_F32 $src0_mods, $src0, $src1_mods, $src1, $src2_mods, $src2)
+>;
+} // End SubtargetPredicate = HasGFX950Insts, AddedComplexity = 1
+
 def : AMDGPUMnemonicAlias<"v_accvgpr_read",  "v_accvgpr_read_b32">;
 def : AMDGPUMnemonicAlias<"v_accvgpr_write", "v_accvgpr_write_b32">;
 
@@ -1775,7 +1801,7 @@ class VOP3PWMMA_Profile<list<ValueType> ArgTy, bit _IsSWMMAC, int _IndexType,
                                          !eq(ArgTy[1], v48i32), !eq(ArgTy[1], v64i32)));
 
   bit IsC_F64 = !eq(ArgTy[3], v8f64);
-  bit IsC_F32 = !or(!eq(ArgTy[3], v16f32), !eq(ArgTy[3], v8f32), !eq(ArgTy[3], v4f32));
+  bit IsC_F32 = !or(!eq(ArgTy[3], v8f32), !eq(ArgTy[3], v4f32));
   bit IsC_BF16 = !or(!eq(ArgTy[3], v8i16), !eq(ArgTy[3], v4i16),
                      !eq(ArgTy[3], v8bf16), !eq(ArgTy[3], v4bf16));
   bit IsC_F16 = !or(!eq(ArgTy[3], v8f16), !eq(ArgTy[3], v4f16));
@@ -1998,8 +2024,7 @@ class VOP3PWMMA_Profile<list<ValueType> ArgTy, bit _IsSWMMAC, int _IndexType,
 def WMMAInstInfoTable : GenericTable {
   let FilterClass = "WMMAInstInfo";
   let CppTypeName = "WMMAInstInfo";
-  let Fields = ["Opcode", "is_wmma_xdl", "is_vavdst_ordered_xdl", "HasMatrixScale",
-                "CoExecVariant"];
+  let Fields = ["Opcode", "is_wmma_xdl", "HasMatrixScale", "CoExecVariant"];
 
   let PrimaryKey = ["Opcode"];
   let PrimaryKeyName = "getWMMAInstInfoHelper";
@@ -2008,7 +2033,6 @@ def WMMAInstInfoTable : GenericTable {
 class WMMAInstInfo<VOP3PWMMA_Profile WMMAProfile> {
   Instruction Opcode = !cast<Instruction>(NAME);
   bit is_wmma_xdl = 0;
-  bit is_vavdst_ordered_xdl = 0;
   bit HasMatrixScale = WMMAProfile.HasMatrixScale;
   code CoExecVariant = WMMAProfile.CoExecVariant;
 }
@@ -2017,8 +2041,6 @@ multiclass WMMAInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string Pse
 
   defvar WMMAConstraints2Addr = !if(DiffVdstSrc2, "@earlyclobber $vdst", "@earlyclobber $vdst,$vdst = $src2");
   defvar WMMAConstraints3Addr = "@earlyclobber $vdst";
-  defvar IsVAVDSTOrderedXDL = !and(!or(WMMAProfile.IsC_F32, WMMAProfile.IsIU),
-                                   !not(!or(WMMAProfile.IsAB_F64, WMMAProfile.IsAB_F32)));
 
   let Mnemonic = Instr, mayRaiseFPException = 0, ReadsModeReg = 0, isConvergent = 1, SubtargetPredicate = HasWMMA128bInsts in {
     let Constraints = WMMAConstraints2Addr, isConvertibleToThreeAddress = 1 in
@@ -2026,7 +2048,6 @@ multiclass WMMAInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string Pse
         let PseudoInstr = Instr#PseudoInstrSuffix;
         let FixedSize = WMMAProfile.HasMatrixScale;
         let Size = !if(WMMAProfile.HasMatrixScale, 16, 8);
-        let is_vavdst_ordered_xdl = !and(is_wmma_xdl, IsVAVDSTOrderedXDL);
       }
 
     let Constraints = WMMAConstraints3Addr, SchedRW = [Write32Bit, Write32Bit] in
@@ -2034,7 +2055,6 @@ multiclass WMMAInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string Pse
         let PseudoInstr = Instr#PseudoInstrSuffix;
         let FixedSize = WMMAProfile.HasMatrixScale;
         let Size = !if(WMMAProfile.HasMatrixScale, 16, 8);
-        let is_vavdst_ordered_xdl = !and(is_wmma_xdl, IsVAVDSTOrderedXDL);
       }
 
   }
@@ -2051,10 +2071,6 @@ multiclass SWMMACInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string P
     let AsmMatchConverter = "cvtSWMMAC";
     let isConvergent = 1;
     let Constraints = "@earlyclobber $vdst,$vdst = $srcTiedDef";
-    let is_vavdst_ordered_xdl =
-        !and(is_wmma_xdl,
-             !or(WMMAProfile.IsC_F32, WMMAProfile.IsIU),
-             !not(!or(WMMAProfile.IsAB_F64, WMMAProfile.IsAB_F32)));
   }
 }
 
@@ -3012,7 +3028,10 @@ defm V_WMMA_I32_16X16X16_IU4   : VOP3P_Real_WMMA <0x045>;
 multiclass VOP3P_Real_vi<bits<7> op> {
   def _vi : VOP3P_Real<!cast<VOP3_Pseudo>(NAME), SIEncodingFamily.VI>,
             VOP3Pe_vi <op, !cast<VOP3_Pseudo>(NAME).Pfl> {
-    let AssemblerPredicate = HasVOP3PInsts;
+    // VOP3P instructions use the VI encoding, which is GFX9-only; GFX8 does
+    // not support VOP3P. Use isGFX9Only so the assembler predicate also
+    // distinguishes this variant from the GFX10+ real instructions.
+    let AssemblerPredicate = isGFX9Only;
     let DecoderNamespace = "GFX8";
     let VOP3P = 1;
   }
@@ -3425,11 +3444,11 @@ multiclass FPToIntSatI16Pat<dag lhs, dag rhs> {
 // Packed f32 -> i16 saturated conversion.
 multiclass CvtPkF32ToI16Pat<SDPatternOperator dagOp, Instruction inst> {
   def : GCNPat<(v2i16 (dagOp (v2f32 VReg_64:$src), i16)),
-               (inst 0, (EXTRACT_SUBREG VReg_64:$src, sub0),
-                     0, (EXTRACT_SUBREG VReg_64:$src, sub1))>;
+               (inst 0, (f32 (EXTRACT_SUBREG VReg_64:$src, sub0)),
+                     0, (f32 (EXTRACT_SUBREG VReg_64:$src, sub1)))>;
   def : GCNPat<(v2i16 (dagOp (v2f32 SReg_64:$src), i16)),
-               (inst 0, (EXTRACT_SUBREG SReg_64:$src, sub0),
-                     0, (EXTRACT_SUBREG SReg_64:$src, sub1))>;
+               (inst 0, (f32 (EXTRACT_SUBREG SReg_64:$src, sub0)),
+                     0, (f32 (EXTRACT_SUBREG SReg_64:$src, sub1)))>;
   // Single value conversion: use a packed instruction with a dummy second input.
   defm : FPToIntSatI16Pat<(i16 (dagOp (f32 (VOP3Mods f32:$src0, i32:$src0_modifiers)), i16)),
                           (inst $src0_modifiers, $src0, 0, (f32 (IMPLICIT_DEF)))>;
