@@ -28,9 +28,9 @@ define amdgpu_kernel void @v_wave_match_sgpr(ptr addrspace(1) %out, i32 %src1, i
 define amdgpu_kernel void @v_wave_match_vgpr(ptr addrspace(1) %out) {
 ; GFX13-LABEL: v_wave_match_vgpr:
 ; GFX13:       ; %bb.0:
+; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    v_and_b32_e32 v1, 0x3ff, v0
 ; GFX13-NEXT:    v_bfe_u32 v0, v0, 10, 10
-; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-NEXT:    v_wave_match_b32 v0, v1, v0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
