@@ -96,7 +96,6 @@
 ; GCN-O0-NEXT:       amdgpu-wait-sgpr-hazards
 ; GCN-O0-NEXT:       amdgpu-lower-vgpr-encoding
 ; GCN-O0-NEXT:       branch-relaxation
-; GCN-O0-NEXT:       AMDGPUStaticSimulatorPass
 ; GCN-O0-NEXT:       reg-usage-collector
 ; GCN-O0-NEXT:       remove-loads-into-fake-uses
 ; GCN-O0-NEXT:       live-debug-values
@@ -222,7 +221,6 @@
 ; GCN-O2-NEXT:       init-undef
 ; GCN-O2-NEXT:       process-implicit-defs
 ; GCN-O2-NEXT:       unreachable-mbb-elimination
-; GCN-O2-NEXT:       require<live-vars>
 ; GCN-O2-NEXT:       require<live-intervals>
 ; GCN-O2-NEXT:       require<machine-loops>
 ; GCN-O2-NEXT:       si-opt-vgpr-liverange
@@ -286,7 +284,6 @@
 ; GCN-O2-NEXT:       amdgpu-lower-vgpr-encoding
 ; GCN-O2-NEXT:       amdgpu-insert-delay-alu
 ; GCN-O2-NEXT:       branch-relaxation
-; GCN-O2-NEXT:       AMDGPUStaticSimulatorPass
 ; GCN-O2-NEXT:       reg-usage-collector
 ; GCN-O2-NEXT:       remove-loads-into-fake-uses
 ; GCN-O2-NEXT:       live-debug-values
@@ -412,7 +409,6 @@
 ; GCN-O3-NEXT:       init-undef
 ; GCN-O3-NEXT:       process-implicit-defs
 ; GCN-O3-NEXT:       unreachable-mbb-elimination
-; GCN-O3-NEXT:       require<live-vars>
 ; GCN-O3-NEXT:       require<live-intervals>
 ; GCN-O3-NEXT:       require<machine-loops>
 ; GCN-O3-NEXT:       si-opt-vgpr-liverange
@@ -476,7 +472,6 @@
 ; GCN-O3-NEXT:       amdgpu-lower-vgpr-encoding
 ; GCN-O3-NEXT:       amdgpu-insert-delay-alu
 ; GCN-O3-NEXT:       branch-relaxation
-; GCN-O3-NEXT:       AMDGPUStaticSimulatorPass
 ; GCN-O3-NEXT:       reg-usage-collector
 ; GCN-O3-NEXT:       remove-loads-into-fake-uses
 ; GCN-O3-NEXT:       live-debug-values

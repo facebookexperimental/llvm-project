@@ -17,12 +17,12 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_integer_immediate(ptr addrspace
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, s3
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, s4
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-SDAG-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_mov_b32 v4, v4
+; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v10, 40
@@ -47,13 +47,13 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_integer_immediate(ptr addrspace
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v0, s10
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, s11
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-GISEL-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v2, s4
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_mov_b32 v4, v2
+; GFX803-GISEL-NEXT:    v_mov_b32_e32 v4, v2
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v10, s3
@@ -74,58 +74,59 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_integer_immediate(ptr addrspace
 ; GFX13-SDAG-NEXT:    s_clause 0x1
 ; GFX13-SDAG-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX13-SDAG-NEXT:    s_load_b32 s4, s[4:5], 0x34 nv
-; GFX13-SDAG-NEXT:    v_dual_mov_b32 v11, 0 :: v_dual_mov_b32 v7, 10
-; GFX13-SDAG-NEXT:    v_dual_mov_b32 v9, 30 :: v_dual_mov_b32 v10, 40
+; GFX13-SDAG-NEXT:    v_dual_mov_b32 v7, 10 :: v_dual_mov_b32 v8, 20
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
-; GFX13-SDAG-NEXT:    v_dual_mov_b32 v8, 20 :: v_dual_mov_b32 v0, s2
+; GFX13-SDAG-NEXT:    v_dual_mov_b32 v9, 30 :: v_dual_mov_b32 v0, s2
 ; GFX13-SDAG-NEXT:    v_dual_mov_b32 v1, s3 :: v_dual_mov_b32 v4, s4
 ; GFX13-SDAG-NEXT:    ;;#ASMSTART
-; GFX13-SDAG-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX13-SDAG-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX13-SDAG-NEXT:    ;;#ASMEND
-; GFX13-SDAG-NEXT:    v_dual_mov_b32 v0, v2 :: v_dual_mov_b32 v1, v3
+; GFX13-SDAG-NEXT:    v_dual_mov_b32 v10, 40 :: v_dual_mov_b32 v0, v2
 ; GFX13-SDAG-NEXT:    ;;#ASMSTART
-; GFX13-SDAG-NEXT:    v_mov_b32 v4, v4
+; GFX13-SDAG-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX13-SDAG-NEXT:    ;;#ASMEND
 ; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(NEXT) | instid1(VALU_DEP_1)
-; GFX13-SDAG-NEXT:    v_mov_b32_e32 v6, v4
+; GFX13-SDAG-NEXT:    v_dual_mov_b32 v1, v3 :: v_dual_mov_b32 v6, v4
 ; GFX13-SDAG-NEXT:    v_mqsad_u32_u8 v[2:5], v[0:1], v6, v[7:10]
+; GFX13-SDAG-NEXT:    v_mov_b32_e32 v6, 0
 ; GFX13-SDAG-NEXT:    ;;#ASMSTART
 ; GFX13-SDAG-NEXT:    ;; force constraint
 ; GFX13-SDAG-NEXT:    ;;#ASMEND
-; GFX13-SDAG-NEXT:    global_store_b128 v11, v[0:3], s[0:1]
+; GFX13-SDAG-NEXT:    global_store_b128 v6, v[0:3], s[0:1]
 ; GFX13-SDAG-NEXT:    s_endpgm
 ;
 ; GFX13-GISEL-LABEL: v_mqsad_u32_u8_inline_integer_immediate:
 ; GFX13-GISEL:       ; %bb.0:
 ; GFX13-GISEL-NEXT:    s_clause 0x1
 ; GFX13-GISEL-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
-; GFX13-GISEL-NEXT:    s_load_b32 s8, s[4:5], 0x34 nv
+; GFX13-GISEL-NEXT:    s_load_b32 s4, s[4:5], 0x34 nv
 ; GFX13-GISEL-NEXT:    s_mov_b32 s7, 40
 ; GFX13-GISEL-NEXT:    s_mov_b32 s6, 30
 ; GFX13-GISEL-NEXT:    s_mov_b32 s5, 20
+; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
+; GFX13-GISEL-NEXT:    v_dual_mov_b32 v0, s2 :: v_dual_mov_b32 v1, s3
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v4, s4
 ; GFX13-GISEL-NEXT:    s_mov_b32 s4, 10
 ; GFX13-GISEL-NEXT:    v_dual_mov_b32 v10, s7 :: v_dual_mov_b32 v9, s6
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v8, s5 :: v_dual_mov_b32 v7, s4
-; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v11, 0 :: v_dual_mov_b32 v0, s2
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v1, s3 :: v_dual_mov_b32 v4, s8
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v8, s5
 ; GFX13-GISEL-NEXT:    ;;#ASMSTART
-; GFX13-GISEL-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX13-GISEL-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX13-GISEL-NEXT:    ;;#ASMEND
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v0, v2 :: v_dual_mov_b32 v1, v3
+; GFX13-GISEL-NEXT:    v_dual_mov_b32 v7, s4 :: v_dual_mov_b32 v0, v2
 ; GFX13-GISEL-NEXT:    ;;#ASMSTART
-; GFX13-GISEL-NEXT:    v_mov_b32 v4, v4
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX13-GISEL-NEXT:    ;;#ASMEND
-; GFX13-GISEL-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(NEXT) | instid1(VALU_DEP_1)
-; GFX13-GISEL-NEXT:    v_mov_b32_e32 v6, v4
+; GFX13-GISEL-NEXT:    v_dual_mov_b32 v1, v3 :: v_dual_mov_b32 v6, v4
+; GFX13-GISEL-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-NEXT:    v_mqsad_u32_u8 v[2:5], v[0:1], v6, v[7:10]
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v6, 0
 ; GFX13-GISEL-NEXT:    ;;#ASMSTART
 ; GFX13-GISEL-NEXT:    ;; force constraint
 ; GFX13-GISEL-NEXT:    ;;#ASMEND
-; GFX13-GISEL-NEXT:    global_store_b128 v11, v[0:3], s[0:1]
+; GFX13-GISEL-NEXT:    global_store_b128 v6, v[0:3], s[0:1]
 ; GFX13-GISEL-NEXT:    s_endpgm
-  %tmp = call i64 asm "v_lsrlrev_b64 $0, $1, 1", "={v[2:3]},v"(i64 %src) #0
-  %tmp1 = call i32 asm "v_mov_b32 $0, $1", "={v4},v"(i32 %a) #0
+  %tmp = call i64 asm "; def $0, use $1", "={v[2:3]},v"(i64 %src) #0
+  %tmp1 = call i32 asm "v_mov_b32_e32 $0, $1", "={v4},v"(i32 %a) #0
   %tmp2 = call <4 x i32> @llvm.amdgcn.mqsad.u32.u8(i64 %tmp, i32 %tmp1, <4 x i32> <i32 10, i32 20, i32 30, i32 40>) #0
   %tmp3 = call <4 x i32>  asm ";; force constraint", "=v,{v[2:5]}"(<4 x i32> %tmp2) #0
   store <4 x i32> %tmp3, ptr addrspace(1) %out, align 4
@@ -143,12 +144,12 @@ define amdgpu_kernel void @v_mqsad_u32_u8_non_immediate(ptr addrspace(1) %out, i
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, s3
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, s8
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-SDAG-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_mov_b32 v4, v4
+; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v10, s7
@@ -174,12 +175,12 @@ define amdgpu_kernel void @v_mqsad_u32_u8_non_immediate(ptr addrspace(1) %out, i
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, s3
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v4, s8
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-GISEL-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_mov_b32 v4, v4
+; GFX803-GISEL-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v10, s7
@@ -202,27 +203,27 @@ define amdgpu_kernel void @v_mqsad_u32_u8_non_immediate(ptr addrspace(1) %out, i
 ; GFX13-NEXT:    s_load_b32 s8, s[4:5], 0x34 nv
 ; GFX13-NEXT:    s_load_b128 s[4:7], s[4:5], 0x44 nv
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
-; GFX13-NEXT:    v_dual_mov_b32 v11, 0 :: v_dual_mov_b32 v0, s2
-; GFX13-NEXT:    v_dual_mov_b32 v1, s3 :: v_dual_mov_b32 v4, s8
-; GFX13-NEXT:    v_dual_mov_b32 v10, s7 :: v_dual_mov_b32 v9, s6
-; GFX13-NEXT:    v_dual_mov_b32 v8, s5 :: v_dual_mov_b32 v7, s4
+; GFX13-NEXT:    v_dual_mov_b32 v0, s2 :: v_dual_mov_b32 v1, s3
+; GFX13-NEXT:    v_dual_mov_b32 v4, s8 :: v_dual_mov_b32 v10, s7
+; GFX13-NEXT:    v_dual_mov_b32 v9, s6 :: v_dual_mov_b32 v8, s5
 ; GFX13-NEXT:    ;;#ASMSTART
-; GFX13-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX13-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX13-NEXT:    ;;#ASMEND
-; GFX13-NEXT:    v_dual_mov_b32 v0, v2 :: v_dual_mov_b32 v1, v3
+; GFX13-NEXT:    v_dual_mov_b32 v7, s4 :: v_dual_mov_b32 v0, v2
 ; GFX13-NEXT:    ;;#ASMSTART
-; GFX13-NEXT:    v_mov_b32 v4, v4
+; GFX13-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX13-NEXT:    ;;#ASMEND
-; GFX13-NEXT:    v_mov_b32_e32 v6, v4
+; GFX13-NEXT:    v_dual_mov_b32 v1, v3 :: v_dual_mov_b32 v6, v4
 ; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-NEXT:    v_mqsad_u32_u8 v[2:5], v[0:1], v6, v[7:10]
+; GFX13-NEXT:    v_mov_b32_e32 v6, 0
 ; GFX13-NEXT:    ;;#ASMSTART
 ; GFX13-NEXT:    ;; force constraint
 ; GFX13-NEXT:    ;;#ASMEND
-; GFX13-NEXT:    global_store_b128 v11, v[0:3], s[0:1]
+; GFX13-NEXT:    global_store_b128 v6, v[0:3], s[0:1]
 ; GFX13-NEXT:    s_endpgm
-  %tmp = call i64 asm "v_lsrlrev_b64 $0, $1, 1", "={v[2:3]},v"(i64 %src) #0
-  %tmp1 = call i32 asm "v_mov_b32 $0, $1", "={v4},v"(i32 %a) #0
+  %tmp = call i64 asm "; def $0, use $1", "={v[2:3]},v"(i64 %src) #0
+  %tmp1 = call i32 asm "v_mov_b32_e32 $0, $1", "={v4},v"(i32 %a) #0
   %tmp2 = call <4 x i32> @llvm.amdgcn.mqsad.u32.u8(i64 %tmp, i32 %tmp1, <4 x i32> %b) #0
   %tmp3 = call <4 x i32>  asm ";; force constraint", "=v,{v[2:5]}"(<4 x i32> %tmp2) #0
   store <4 x i32> %tmp3, ptr addrspace(1) %out, align 4
@@ -242,12 +243,12 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_fp_immediate(ptr addrspace(1) %
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, s3
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, s4
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-SDAG-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_mov_b32 v4, v4
+; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v10, v8
@@ -272,13 +273,13 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_fp_immediate(ptr addrspace(1) %
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v0, s10
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, s11
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-GISEL-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v2, s4
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_mov_b32 v4, v2
+; GFX803-GISEL-NEXT:    v_mov_b32_e32 v4, v2
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v10, s3
@@ -305,11 +306,11 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_fp_immediate(ptr addrspace(1) %
 ; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(SKIP_4) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_dual_mov_b32 v7, 1.0 :: v_dual_mov_b32 v9, v8
 ; GFX13-SDAG-NEXT:    ;;#ASMSTART
-; GFX13-SDAG-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX13-SDAG-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX13-SDAG-NEXT:    ;;#ASMEND
 ; GFX13-SDAG-NEXT:    v_dual_mov_b32 v10, v8 :: v_dual_mov_b32 v0, v2
 ; GFX13-SDAG-NEXT:    ;;#ASMSTART
-; GFX13-SDAG-NEXT:    v_mov_b32 v4, v4
+; GFX13-SDAG-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX13-SDAG-NEXT:    ;;#ASMEND
 ; GFX13-SDAG-NEXT:    v_dual_mov_b32 v1, v3 :: v_dual_mov_b32 v6, v4
 ; GFX13-SDAG-NEXT:    v_mqsad_u32_u8 v[2:5], v[0:1], v6, v[7:10]
@@ -324,34 +325,33 @@ define amdgpu_kernel void @v_mqsad_u32_u8_inline_fp_immediate(ptr addrspace(1) %
 ; GFX13-GISEL-NEXT:    s_clause 0x1
 ; GFX13-GISEL-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX13-GISEL-NEXT:    s_load_b32 s7, s[4:5], 0x34 nv
-; GFX13-GISEL-NEXT:    v_mov_b32_e32 v11, 0
 ; GFX13-GISEL-NEXT:    s_mov_b32 s5, 0
 ; GFX13-GISEL-NEXT:    s_mov_b32 s4, 1.0
 ; GFX13-GISEL-NEXT:    s_mov_b32 s6, s5
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v1, s3 :: v_dual_mov_b32 v4, s7
+; GFX13-GISEL-NEXT:    v_dual_mov_b32 v0, s2 :: v_dual_mov_b32 v1, s3
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v4, s7
 ; GFX13-GISEL-NEXT:    s_mov_b32 s7, s5
-; GFX13-GISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v0, s2 :: v_dual_mov_b32 v10, s7
 ; GFX13-GISEL-NEXT:    v_dual_mov_b32 v9, s6 :: v_dual_mov_b32 v8, s5
-; GFX13-GISEL-NEXT:    v_mov_b32_e32 v7, s4
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v10, s7
 ; GFX13-GISEL-NEXT:    ;;#ASMSTART
-; GFX13-GISEL-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX13-GISEL-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX13-GISEL-NEXT:    ;;#ASMEND
-; GFX13-GISEL-NEXT:    v_dual_mov_b32 v0, v2 :: v_dual_mov_b32 v1, v3
+; GFX13-GISEL-NEXT:    v_dual_mov_b32 v7, s4 :: v_dual_mov_b32 v0, v2
 ; GFX13-GISEL-NEXT:    ;;#ASMSTART
-; GFX13-GISEL-NEXT:    v_mov_b32 v4, v4
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX13-GISEL-NEXT:    ;;#ASMEND
-; GFX13-GISEL-NEXT:    v_mov_b32_e32 v6, v4
+; GFX13-GISEL-NEXT:    v_dual_mov_b32 v1, v3 :: v_dual_mov_b32 v6, v4
 ; GFX13-GISEL-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-NEXT:    v_mqsad_u32_u8 v[2:5], v[0:1], v6, v[7:10]
+; GFX13-GISEL-NEXT:    v_mov_b32_e32 v6, 0
 ; GFX13-GISEL-NEXT:    ;;#ASMSTART
 ; GFX13-GISEL-NEXT:    ;; force constraint
 ; GFX13-GISEL-NEXT:    ;;#ASMEND
-; GFX13-GISEL-NEXT:    global_store_b128 v11, v[0:3], s[0:1]
+; GFX13-GISEL-NEXT:    global_store_b128 v6, v[0:3], s[0:1]
 ; GFX13-GISEL-NEXT:    s_endpgm
-  %tmp = call i64 asm "v_lsrlrev_b64 $0, $1, 1", "={v[2:3]},v"(i64 %src) #0
-  %tmp1 = call i32 asm "v_mov_b32 $0, $1", "={v4},v"(i32 %a) #0
+  %tmp = call i64 asm "; def $0, use $1", "={v[2:3]},v"(i64 %src) #0
+  %tmp1 = call i32 asm "v_mov_b32_e32 $0, $1", "={v4},v"(i32 %a) #0
   %tmp2 = call <4 x i32> @llvm.amdgcn.mqsad.u32.u8(i64 %tmp, i32 %tmp1, <4 x i32> <i32 1065353216, i32 0, i32 0, i32 0>) #0
   %tmp3 = call <4 x i32>  asm ";; force constraint", "=v,{v[2:5]}"(<4 x i32> %tmp2) #0
   store <4 x i32> %tmp3, ptr addrspace(1) %out, align 4
@@ -370,12 +370,12 @@ define amdgpu_kernel void @v_mqsad_u32_u8_use_sgpr_vgpr(ptr addrspace(1) %out, i
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, s3
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, s8
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-SDAG-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-SDAG-NEXT:    ;;#ASMSTART
-; GFX803-SDAG-NEXT:    v_mov_b32 v4, v4
+; GFX803-SDAG-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX803-SDAG-NEXT:    ;;#ASMEND
 ; GFX803-SDAG-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-SDAG-NEXT:    s_waitcnt lgkmcnt(0)
@@ -403,12 +403,12 @@ define amdgpu_kernel void @v_mqsad_u32_u8_use_sgpr_vgpr(ptr addrspace(1) %out, i
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, s3
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v4, s8
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX803-GISEL-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v0, v2
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v1, v3
 ; GFX803-GISEL-NEXT:    ;;#ASMSTART
-; GFX803-GISEL-NEXT:    v_mov_b32 v4, v4
+; GFX803-GISEL-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX803-GISEL-NEXT:    ;;#ASMEND
 ; GFX803-GISEL-NEXT:    v_mov_b32_e32 v6, v4
 ; GFX803-GISEL-NEXT:    s_waitcnt lgkmcnt(0)
@@ -431,32 +431,31 @@ define amdgpu_kernel void @v_mqsad_u32_u8_use_sgpr_vgpr(ptr addrspace(1) %out, i
 ; GFX13-NEXT:    s_load_b64 s[6:7], s[4:5], 0x3c nv
 ; GFX13-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX13-NEXT:    s_load_b32 s8, s[4:5], 0x34 nv
-; GFX13-NEXT:    v_mov_b32_e32 v11, 0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-NEXT:    s_load_b128 s[4:7], s[6:7], 0x0
 ; GFX13-NEXT:    v_dual_mov_b32 v0, s2 :: v_dual_mov_b32 v1, s3
-; GFX13-NEXT:    v_mov_b32_e32 v4, s8
 ; GFX13-NEXT:    ;;#ASMSTART
-; GFX13-NEXT:    v_lsrlrev_b64 v[2:3], v[0:1], 1
+; GFX13-NEXT:    ; def v[2:3], use v[0:1]
 ; GFX13-NEXT:    ;;#ASMEND
-; GFX13-NEXT:    v_dual_mov_b32 v0, v2 :: v_dual_mov_b32 v1, v3
+; GFX13-NEXT:    v_dual_mov_b32 v4, s8 :: v_dual_mov_b32 v0, v2
 ; GFX13-NEXT:    ;;#ASMSTART
-; GFX13-NEXT:    v_mov_b32 v4, v4
+; GFX13-NEXT:    v_mov_b32_e32 v4, v4
 ; GFX13-NEXT:    ;;#ASMEND
+; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-NEXT:    v_dual_mov_b32 v1, v3 :: v_dual_mov_b32 v6, v4
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
-; GFX13-NEXT:    v_dual_mov_b32 v6, v4 :: v_dual_mov_b32 v10, s7
-; GFX13-NEXT:    v_dual_mov_b32 v9, s6 :: v_dual_mov_b32 v8, s5
-; GFX13-NEXT:    v_mov_b32_e32 v7, s4
-; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13-NEXT:    v_dual_mov_b32 v10, s7 :: v_dual_mov_b32 v9, s6
+; GFX13-NEXT:    v_dual_mov_b32 v8, s5 :: v_dual_mov_b32 v7, s4
 ; GFX13-NEXT:    v_mqsad_u32_u8 v[2:5], v[0:1], v6, v[7:10]
+; GFX13-NEXT:    v_mov_b32_e32 v6, 0
 ; GFX13-NEXT:    ;;#ASMSTART
 ; GFX13-NEXT:    ;; force constraint
 ; GFX13-NEXT:    ;;#ASMEND
-; GFX13-NEXT:    global_store_b128 v11, v[0:3], s[0:1]
+; GFX13-NEXT:    global_store_b128 v6, v[0:3], s[0:1]
 ; GFX13-NEXT:    s_endpgm
   %in = load <4 x i32>, ptr addrspace(1) %input
-  %tmp = call i64 asm "v_lsrlrev_b64 $0, $1, 1", "={v[2:3]},v"(i64 %src) #0
-  %tmp1 = call i32 asm "v_mov_b32 $0, $1", "={v4},v"(i32 %a) #0
+  %tmp = call i64 asm "; def $0, use $1", "={v[2:3]},v"(i64 %src) #0
+  %tmp1 = call i32 asm "v_mov_b32_e32 $0, $1", "={v4},v"(i32 %a) #0
   %tmp2 = call <4 x i32> @llvm.amdgcn.mqsad.u32.u8(i64 %tmp, i32 %tmp1, <4 x i32> %in) #0
   %tmp3 = call <4 x i32>  asm ";; force constraint", "=v,{v[2:5]}"(<4 x i32> %tmp2) #0
   store <4 x i32> %tmp3, ptr addrspace(1) %out, align 4
