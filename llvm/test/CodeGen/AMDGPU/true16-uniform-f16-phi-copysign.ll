@@ -36,10 +36,10 @@ define amdgpu_kernel void @uniform_f16_phi_copysign(half %x, ptr addrspace(1) %o
 ; CHECK-NEXT:    s_delay_alu instid0(SALU_CYCLE_3)
 ; CHECK-NEXT:    v_mov_b32_e32 v0, s1
 ; CHECK-NEXT:  .LBB0_3: ; %exit
+; CHECK-NEXT:    s_load_b64 s[2:3], s[4:5], 0x8 nv
 ; CHECK-NEXT:    s_mov_b32 s1, 0x7fff
 ; CHECK-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instid1(SALU_CYCLE_1)
 ; CHECK-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_bitop2_b32 v0, s1, v0 bitop3:0x40
-; CHECK-NEXT:    s_load_b64 s[2:3], s[4:5], 0x8 nv
 ; CHECK-NEXT:    s_and_b32 s0, s0, 0x8000
 ; CHECK-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instid1(SALU_CYCLE_1)
 ; CHECK-NEXT:    v_or_b32_e32 v0, s0, v0
