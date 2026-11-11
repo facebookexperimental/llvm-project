@@ -10,9 +10,8 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 TdInfo = provider(
     "Holds TableGen files and the dependencies and include paths necessary to" + " build them.",
     fields = {
-        "transitive_includes": (
-            "include arguments to add to the final TableGen invocation. These" + " are the absolute directory paths that will be added with '-I'."
-        ),
+        "transitive_includes": "include arguments to add to the final TableGen invocation. These"
+        + " are the absolute directory paths that will be added with '-I'.",
         "transitive_sources": "td files transitively used by this rule.",
     },
 )
