@@ -566,70 +566,74 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY908-NEXT:    s_waitcnt lgkmcnt(0)
 ; GREEDY908-NEXT:    s_load_dwordx16 s[0:15], s[16:17], 0x0
 ; GREEDY908-NEXT:    s_waitcnt lgkmcnt(0)
-; GREEDY908-NEXT:    v_mov_b32_e32 v5, s0
-; GREEDY908-NEXT:    v_mov_b32_e32 v1, s1
-; GREEDY908-NEXT:    v_mov_b32_e32 v2, s2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a0, v5
-; GREEDY908-NEXT:    v_mov_b32_e32 v5, s3
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a1, v1
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a2, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a3, v5
-; GREEDY908-NEXT:    v_mov_b32_e32 v1, s4
-; GREEDY908-NEXT:    v_mov_b32_e32 v2, s5
-; GREEDY908-NEXT:    v_mov_b32_e32 v5, s6
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a4, v1
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a5, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a6, v5
-; GREEDY908-NEXT:    v_mov_b32_e32 v1, s7
-; GREEDY908-NEXT:    v_mov_b32_e32 v2, s8
-; GREEDY908-NEXT:    v_mov_b32_e32 v5, s9
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a7, v1
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a8, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a9, v5
-; GREEDY908-NEXT:    v_mov_b32_e32 v1, s10
-; GREEDY908-NEXT:    v_mov_b32_e32 v2, s11
-; GREEDY908-NEXT:    v_mov_b32_e32 v5, s12
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a10, v1
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a11, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a12, v5
-; GREEDY908-NEXT:    v_mov_b32_e32 v1, s13
-; GREEDY908-NEXT:    v_mov_b32_e32 v2, s14
-; GREEDY908-NEXT:    v_mov_b32_e32 v5, s15
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a13, v1
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a14, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a15, v5
+; GREEDY908-NEXT:    v_mov_b32_e32 v1, s15
+; GREEDY908-NEXT:    v_mov_b32_e32 v19, s14
+; GREEDY908-NEXT:    v_mov_b32_e32 v2, s13
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a31, v1
+; GREEDY908-NEXT:    v_mov_b32_e32 v1, s12
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a30, v19
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a29, v2
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a28, v1
+; GREEDY908-NEXT:    v_mov_b32_e32 v19, s11
+; GREEDY908-NEXT:    v_mov_b32_e32 v2, s10
+; GREEDY908-NEXT:    v_mov_b32_e32 v1, s9
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a27, v19
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a26, v2
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a25, v1
+; GREEDY908-NEXT:    v_mov_b32_e32 v19, s8
+; GREEDY908-NEXT:    v_mov_b32_e32 v2, s7
+; GREEDY908-NEXT:    v_mov_b32_e32 v1, s6
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a24, v19
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a23, v2
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a22, v1
+; GREEDY908-NEXT:    v_mov_b32_e32 v19, s5
+; GREEDY908-NEXT:    v_mov_b32_e32 v2, s4
+; GREEDY908-NEXT:    v_mov_b32_e32 v1, s3
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a21, v19
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a20, v2
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a19, v1
+; GREEDY908-NEXT:    v_mov_b32_e32 v19, s2
+; GREEDY908-NEXT:    v_mov_b32_e32 v2, s1
+; GREEDY908-NEXT:    v_mov_b32_e32 v1, s0
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a18, v19
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a17, v2
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a16, v1
 ; GREEDY908-NEXT:    v_mov_b32_e32 v1, 2.0
 ; GREEDY908-NEXT:    s_nop 1
-; GREEDY908-NEXT:    v_mfma_f32_16x16x1f32 a[0:15], v0, v1, a[0:15]
-; GREEDY908-NEXT:    v_mfma_f32_16x16x1f32 a[16:31], v0, v1, a[0:15]
-; GREEDY908-NEXT:    s_nop 9
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v3, a16
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v5, a17
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v2, a18
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a2, v3
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a3, v5
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v3, a19
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v5, a20
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a4, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a5, v3
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a6, v5
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v2, a21
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v3, a22
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v5, a23
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a7, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a8, v3
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a9, v5
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v2, a24
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v3, a25
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v5, a26
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a10, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a11, v3
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a12, v5
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v2, a27
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v3, a28
-; GREEDY908-NEXT:    v_accvgpr_read_b32 v5, a29
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a13, v2
-; GREEDY908-NEXT:    v_accvgpr_write_b32 a14, v3
+; GREEDY908-NEXT:    v_mfma_f32_16x16x1f32 a[16:31], v0, v1, a[16:31]
+; GREEDY908-NEXT:    v_mfma_f32_16x16x1f32 a[0:15], v0, v1, a[16:31]
+; GREEDY908-NEXT:    s_nop 8
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v19, a16
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v2, a17
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v5, a13
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v6, a12
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v7, a11
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v8, a10
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v9, a9
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v10, a8
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v11, a7
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v12, a6
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v13, a5
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v14, a4
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v15, a3
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v16, a2
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v17, a1
+; GREEDY908-NEXT:    v_accvgpr_read_b32 v18, a0
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a0, v19
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a1, v2
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a2, v18
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a3, v17
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a4, v16
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a5, v15
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a6, v14
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a7, v13
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a8, v12
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a9, v11
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a10, v10
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a11, v9
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a12, v8
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a13, v7
+; GREEDY908-NEXT:    v_accvgpr_write_b32 a14, v6
 ; GREEDY908-NEXT:    v_accvgpr_write_b32 a15, v5
 ; GREEDY908-NEXT:    s_nop 0
 ; GREEDY908-NEXT:    v_mfma_f32_16x16x1f32 a[0:15], v0, v1, a[0:15]
@@ -666,8 +670,8 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY90A-LABEL: test_mfma_f32_16x16x1f32:
 ; GREEDY90A:       ; %bb.0: ; %bb
 ; GREEDY90A-NEXT:    s_load_dwordx2 s[16:17], s[4:5], 0x24
-; GREEDY90A-NEXT:    v_mov_b32_e32 v33, 1.0
-; GREEDY90A-NEXT:    v_mov_b32_e32 v32, 2.0
+; GREEDY90A-NEXT:    v_mov_b32_e32 v32, 1.0
+; GREEDY90A-NEXT:    v_mov_b32_e32 v33, 2.0
 ; GREEDY90A-NEXT:    s_waitcnt lgkmcnt(0)
 ; GREEDY90A-NEXT:    s_load_dwordx16 s[0:15], s[16:17], 0x0
 ; GREEDY90A-NEXT:    s_waitcnt lgkmcnt(0)
@@ -680,8 +684,8 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY90A-NEXT:    v_pk_mov_b32 v[12:13], s[12:13], s[12:13] op_sel:[0,1]
 ; GREEDY90A-NEXT:    v_pk_mov_b32 v[14:15], s[14:15], s[14:15] op_sel:[0,1]
 ; GREEDY90A-NEXT:    s_nop 1
-; GREEDY90A-NEXT:    v_mfma_f32_16x16x1f32 v[0:15], v33, v32, v[0:15]
-; GREEDY90A-NEXT:    v_mfma_f32_16x16x1f32 v[16:31], v33, v32, v[0:15]
+; GREEDY90A-NEXT:    v_mfma_f32_16x16x1f32 v[0:15], v32, v33, v[0:15]
+; GREEDY90A-NEXT:    v_mfma_f32_16x16x1f32 v[16:31], v32, v33, v[0:15]
 ; GREEDY90A-NEXT:    s_nop 10
 ; GREEDY90A-NEXT:    v_mov_b32_e32 v2, v16
 ; GREEDY90A-NEXT:    v_mov_b32_e32 v3, v17
@@ -699,7 +703,7 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY90A-NEXT:    v_mov_b32_e32 v15, v29
 ; GREEDY90A-NEXT:    v_mov_b32_e32 v16, 0
 ; GREEDY90A-NEXT:    s_nop 0
-; GREEDY90A-NEXT:    v_mfma_f32_16x16x1f32 v[0:15], v33, v32, v[0:15]
+; GREEDY90A-NEXT:    v_mfma_f32_16x16x1f32 v[0:15], v32, v33, v[0:15]
 ; GREEDY90A-NEXT:    s_nop 10
 ; GREEDY90A-NEXT:    global_store_dwordx4 v16, v[12:15], s[16:17] offset:48
 ; GREEDY90A-NEXT:    global_store_dwordx4 v16, v[8:11], s[16:17] offset:32
@@ -710,8 +714,8 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY942-LABEL: test_mfma_f32_16x16x1f32:
 ; GREEDY942:       ; %bb.0: ; %bb
 ; GREEDY942-NEXT:    s_load_dwordx2 s[16:17], s[4:5], 0x24
-; GREEDY942-NEXT:    v_mov_b32_e32 v33, 1.0
-; GREEDY942-NEXT:    v_mov_b32_e32 v32, 2.0
+; GREEDY942-NEXT:    v_mov_b32_e32 v32, 1.0
+; GREEDY942-NEXT:    v_mov_b32_e32 v33, 2.0
 ; GREEDY942-NEXT:    s_waitcnt lgkmcnt(0)
 ; GREEDY942-NEXT:    s_load_dwordx16 s[0:15], s[16:17], 0x0
 ; GREEDY942-NEXT:    s_waitcnt lgkmcnt(0)
@@ -724,8 +728,8 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY942-NEXT:    v_mov_b64_e32 v[12:13], s[12:13]
 ; GREEDY942-NEXT:    v_mov_b64_e32 v[14:15], s[14:15]
 ; GREEDY942-NEXT:    s_nop 1
-; GREEDY942-NEXT:    v_mfma_f32_16x16x1_4b_f32 v[0:15], v33, v32, v[0:15]
-; GREEDY942-NEXT:    v_mfma_f32_16x16x1_4b_f32 v[16:31], v33, v32, v[0:15]
+; GREEDY942-NEXT:    v_mfma_f32_16x16x1_4b_f32 v[0:15], v32, v33, v[0:15]
+; GREEDY942-NEXT:    v_mfma_f32_16x16x1_4b_f32 v[16:31], v32, v33, v[0:15]
 ; GREEDY942-NEXT:    s_nop 9
 ; GREEDY942-NEXT:    v_mov_b32_e32 v2, v16
 ; GREEDY942-NEXT:    v_mov_b32_e32 v3, v17
@@ -743,7 +747,7 @@ define amdgpu_kernel void @test_mfma_f32_16x16x1f32(ptr addrspace(1) %arg) #0 {
 ; GREEDY942-NEXT:    v_mov_b32_e32 v15, v29
 ; GREEDY942-NEXT:    v_mov_b32_e32 v16, 0
 ; GREEDY942-NEXT:    s_nop 0
-; GREEDY942-NEXT:    v_mfma_f32_16x16x1_4b_f32 v[0:15], v33, v32, v[0:15]
+; GREEDY942-NEXT:    v_mfma_f32_16x16x1_4b_f32 v[0:15], v32, v33, v[0:15]
 ; GREEDY942-NEXT:    s_nop 9
 ; GREEDY942-NEXT:    global_store_dwordx4 v16, v[12:15], s[16:17] offset:48
 ; GREEDY942-NEXT:    global_store_dwordx4 v16, v[8:11], s[16:17] offset:32
