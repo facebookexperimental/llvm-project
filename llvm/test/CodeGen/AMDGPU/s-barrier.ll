@@ -44,7 +44,6 @@ define void @func1() {
 ; GFX13-SDAG-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_expcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_samplecnt 0x0
-; GFX13-SDAG-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    s_mov_b32 m0, 3
 ; GFX13-SDAG-NEXT:    s_barrier_join m0
@@ -58,7 +57,6 @@ define void @func1() {
 ; GFX13-GISEL-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_expcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_samplecnt 0x0
-; GFX13-GISEL-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-NEXT:    s_mov_b32 m0, 0x70003
 ; GFX13-GISEL-NEXT:    s_barrier_join 3
@@ -104,7 +102,6 @@ define void @func2() {
 ; GFX13-SDAG-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_expcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_samplecnt 0x0
-; GFX13-SDAG-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    s_mov_b32 m0, 2
 ; GFX13-SDAG-NEXT:    s_barrier_join m0
@@ -118,7 +115,6 @@ define void @func2() {
 ; GFX13-GISEL-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_expcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_samplecnt 0x0
-; GFX13-GISEL-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-NEXT:    s_mov_b32 m0, 0x70002
 ; GFX13-GISEL-NEXT:    s_barrier_join 2
@@ -165,12 +161,12 @@ define amdgpu_kernel void @kernel1(ptr addrspace(1) %out, ptr addrspace(15) %in)
 ; GFX12-SDAG-NEXT:    s_get_barrier_state s3, m0
 ; GFX12-SDAG-NEXT:    s_mov_b32 m0, s2
 ; GFX12-SDAG-NEXT:    s_get_barrier_state s2, m0
-; GFX12-SDAG-NEXT:    s_barrier_signal -1
 ; GFX12-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX12-SDAG-NEXT:    s_getpc_b64 s[2:3]
 ; GFX12-SDAG-NEXT:    s_sext_i32_i16 s3, s3
 ; GFX12-SDAG-NEXT:    s_add_co_u32 s2, s2, func1@gotpcrel32@lo+8
 ; GFX12-SDAG-NEXT:    s_add_co_ci_u32 s3, s3, func1@gotpcrel32@hi+16
+; GFX12-SDAG-NEXT:    s_barrier_signal -1
 ; GFX12-SDAG-NEXT:    s_load_b64 s[2:3], s[2:3], 0x0
 ; GFX12-SDAG-NEXT:    s_barrier_wait -1
 ; GFX12-SDAG-NEXT:    s_wait_kmcnt 0x0
@@ -216,17 +212,18 @@ define amdgpu_kernel void @kernel1(ptr addrspace(1) %out, ptr addrspace(15) %in)
 ; GFX12-GISEL-NEXT:    s_barrier_wait 1
 ; GFX12-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX12-GISEL-NEXT:    s_barrier_leave
+; GFX12-GISEL-NEXT:    s_wait_kmcnt 0x0
+; GFX12-GISEL-NEXT:    s_add_co_u32 s8, s12, 48
 ; GFX12-GISEL-NEXT:    s_get_barrier_state s0, 1
 ; GFX12-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX12-GISEL-NEXT:    s_get_barrier_state s0, m0
-; GFX12-GISEL-NEXT:    s_barrier_signal -1
-; GFX12-GISEL-NEXT:    s_add_co_u32 s8, s12, 48
 ; GFX12-GISEL-NEXT:    s_add_co_ci_u32 s9, s13, 0
 ; GFX12-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX12-GISEL-NEXT:    s_getpc_b64 s[0:1]
 ; GFX12-GISEL-NEXT:    s_sext_i32_i16 s1, s1
 ; GFX12-GISEL-NEXT:    s_add_co_u32 s0, s0, func1@gotpcrel32@lo+8
 ; GFX12-GISEL-NEXT:    s_add_co_ci_u32 s1, s1, func1@gotpcrel32@hi+16
+; GFX12-GISEL-NEXT:    s_barrier_signal -1
 ; GFX12-GISEL-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0
 ; GFX12-GISEL-NEXT:    s_barrier_wait -1
 ; GFX12-GISEL-NEXT:    s_wait_kmcnt 0x0
@@ -277,10 +274,10 @@ define amdgpu_kernel void @kernel1(ptr addrspace(1) %out, ptr addrspace(15) %in)
 ; GFX13-SDAG-NEXT:    s_get_barrier_state s3, m0
 ; GFX13-SDAG-NEXT:    s_mov_b32 m0, s2
 ; GFX13-SDAG-NEXT:    s_get_barrier_state s2, m0
-; GFX13-SDAG-NEXT:    s_barrier_signal -1
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    s_get_pc_i64 s[2:3]
 ; GFX13-SDAG-NEXT:    s_add_nc_u64 s[2:3], s[2:3], func1@gotpcrel+4
+; GFX13-SDAG-NEXT:    s_barrier_signal -1
 ; GFX13-SDAG-NEXT:    s_load_b64 s[2:3], s[2:3], 0x0 nv
 ; GFX13-SDAG-NEXT:    s_barrier_wait -1
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
@@ -327,10 +324,10 @@ define amdgpu_kernel void @kernel1(ptr addrspace(1) %out, ptr addrspace(15) %in)
 ; GFX13-GISEL-NEXT:    s_get_barrier_state s0, 1
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-NEXT:    s_get_barrier_state s0, m0
-; GFX13-GISEL-NEXT:    s_barrier_signal -1
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-NEXT:    s_get_pc_i64 s[0:1]
 ; GFX13-GISEL-NEXT:    s_add_nc_u64 s[0:1], s[0:1], func1@gotpcrel+4
+; GFX13-GISEL-NEXT:    s_barrier_signal -1
 ; GFX13-GISEL-NEXT:    s_load_b64 s[0:1], s[0:1], 0x0 nv
 ; GFX13-GISEL-NEXT:    s_barrier_wait -1
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
@@ -470,7 +467,6 @@ define void @signal_var_cnt0_const_bar() {
 ; GFX13-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-NEXT:    s_wait_expcnt 0x0
 ; GFX13-NEXT:    s_wait_samplecnt 0x0
-; GFX13-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-NEXT:    s_barrier_signal 1
 ; GFX13-NEXT:    s_set_pc_i64 s[30:31]
@@ -495,7 +491,6 @@ define void @signal_var_cnt0_dynamic_bar(ptr addrspace(15) inreg %bar) {
 ; GFX13-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-NEXT:    s_wait_expcnt 0x0
 ; GFX13-NEXT:    s_wait_samplecnt 0x0
-; GFX13-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-NEXT:    s_and_b32 m0, s0, 63
 ; GFX13-NEXT:    s_barrier_signal m0
@@ -542,7 +537,6 @@ define void @barrier_init_dynamic_cnt(ptr addrspace(15) inreg %bar, i32 inreg %c
 ; GFX13-SDAG-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_expcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_samplecnt 0x0
-; GFX13-SDAG-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    s_and_b32 s1, s1, 0xff
 ; GFX13-SDAG-NEXT:    s_and_b32 s0, s0, 63
@@ -557,7 +551,6 @@ define void @barrier_init_dynamic_cnt(ptr addrspace(15) inreg %bar, i32 inreg %c
 ; GFX13-GISEL-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_expcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_samplecnt 0x0
-; GFX13-GISEL-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-NEXT:    s_and_b32 s1, s1, 0xff
 ; GFX13-GISEL-NEXT:    s_and_b32 s0, s0, 63
@@ -608,7 +601,6 @@ define void @signal_var_dynamic_cnt(ptr addrspace(15) inreg %bar, i32 inreg %cnt
 ; GFX13-SDAG-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_expcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_samplecnt 0x0
-; GFX13-SDAG-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    s_and_b32 s1, s1, 0xff
 ; GFX13-SDAG-NEXT:    s_and_b32 s0, s0, 63
@@ -623,7 +615,6 @@ define void @signal_var_dynamic_cnt(ptr addrspace(15) inreg %bar, i32 inreg %cnt
 ; GFX13-GISEL-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_expcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_samplecnt 0x0
-; GFX13-GISEL-NEXT:    s_wait_bvhcnt 0x0
 ; GFX13-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-NEXT:    s_and_b32 s1, s1, 0xff
 ; GFX13-GISEL-NEXT:    s_and_b32 s0, s0, 63
