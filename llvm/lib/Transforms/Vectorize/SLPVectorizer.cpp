@@ -29040,7 +29040,7 @@ public:
       return false;
 
     Type *Ty = Root->getType();
-    if (!isValidElementType(Ty) || Ty->isPointerTy())
+    if (!Ty->isFloatingPointTy() || !isValidElementType(Ty))
       return false;
 
     // This is an ordered (linearized) reduction regardless of whether the
