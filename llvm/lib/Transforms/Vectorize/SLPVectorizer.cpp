@@ -29040,7 +29040,7 @@ public:
       return false;
 
     Type *Ty = Root->getType();
-    if (!isValidElementType(Ty) || Ty->isPointerTy())
+    if (!Ty->isFloatingPointTy() || !isValidElementType(Ty))
       return false;
 
     // This is an ordered (linearized) reduction regardless of whether the
@@ -30216,7 +30216,8 @@ public:
         V.analyzedReductionVals(VL);
         return false;
       }
-      V.reorderTopToBottom();
+      // Do not reorder whole tree to preserve the original order of the ordered
+      // reduction.
       V.reorderBottomToTop();
 
       BoUpSLP::ExtraValueToDebugLocsMap LocalExternallyUsedValues;
