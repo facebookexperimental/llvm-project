@@ -18,6 +18,7 @@
 #define LLVM_LIB_TARGET_AMDGPU_GCNREGPRESSURE_H
 
 #include "GCNSubtarget.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/CodeGen/LiveIntervals.h"
 #include "llvm/CodeGen/RegisterPressure.h"
 #include <algorithm>
@@ -391,6 +392,13 @@ public:
 /// Common behavior for downward RP trackers. Unconstructible directly.
 class GCNDownwardRPTrackerBase : public GCNRPTracker {
 public:
+  /// Report the per-vreg live-lane transitions \p MI would cause at the current
+  /// position.
+  void forEachDownwardTransition(
+      const MachineInstr *MI, const SIRegisterInfo *TRI,
+      function_ref<void(Register Reg, LaneBitmask PrevMask, LaneBitmask NewMask)>
+          Cb) const;
+
   /// Mostly copy/paste from CodeGen/RegisterPressure.cpp
   /// Calculate the impact \p MI will have on CurPressure and \return the
   /// speculated pressure. In order to support RP Speculation, this does not

@@ -14,20 +14,20 @@ define void @interleaved_with_wave_barrier(ptr addrspace(1) %foo, ptr addrspace(
 ; SDAG-NEXT:    v_dual_mov_b32 v7, v6 :: v_dual_mov_b32 v9, v4
 ; SDAG-NEXT:    v_dual_mov_b32 v8, v3 :: v_dual_mov_b32 v6, v5
 ; SDAG-NEXT:    v_add_nc_u64_e32 v[4:5], 0x54, v[0:1]
-; SDAG-NEXT:    global_load_b32 v12, v[8:9], off offset:44
-; SDAG-NEXT:    global_load_b32 v13, v[0:1], off offset:4
+; SDAG-NEXT:    global_load_b32 v13, v[8:9], off offset:44
+; SDAG-NEXT:    global_load_b32 v14, v[0:1], off offset:4
 ; SDAG-NEXT:    v_add_nc_u32_e32 v3, 0x54, v2
 ; SDAG-NEXT:    v_add_nc_u64_e32 v[10:11], 0x58, v[8:9]
 ; SDAG-NEXT:    ; wave barrier
 ; SDAG-NEXT:    s_mov_b32 s0, 0x58
 ; SDAG-NEXT:    s_wait_loadcnt 0x0
-; SDAG-NEXT:    v_dual_add_nc_u32 v14, s0, v2 :: v_dual_add_nc_u32 v12, v13, v12
+; SDAG-NEXT:    v_dual_add_nc_u32 v12, s0, v2 :: v_dual_add_nc_u32 v13, v14, v13
 ; SDAG-NEXT:    global_load_async_to_lds_b32 v3, v[4:5], off offset:4 th:TH_LOAD_NT nv
 ; SDAG-NEXT:    ; wave barrier
 ; SDAG-NEXT:    ; asyncmark(stages=all)
 ; SDAG-NEXT:    global_load_b32 v15, v[0:1], off offset:8
 ; SDAG-NEXT:    ; wave barrier
-; SDAG-NEXT:    global_load_async_to_lds_b32 v14, v[10:11], off offset:4 th:TH_LOAD_LU nv
+; SDAG-NEXT:    global_load_async_to_lds_b32 v12, v[10:11], off offset:4 th:TH_LOAD_LU nv
 ; SDAG-NEXT:    ; wave barrier
 ; SDAG-NEXT:    global_load_b32 v16, v[8:9], off offset:48
 ; SDAG-NEXT:    ; asyncmark(stages=all)
@@ -38,10 +38,10 @@ define void @interleaved_with_wave_barrier(ptr addrspace(1) %foo, ptr addrspace(
 ; SDAG-NEXT:    s_wait_asynccnt 0x0
 ; SDAG-NEXT:    ds_load_b32 v2, v2 offset:88
 ; SDAG-NEXT:    s_wait_loadcnt_dscnt 0x101
-; SDAG-NEXT:    v_add3_u32 v12, v12, v17, v15
+; SDAG-NEXT:    v_add3_u32 v13, v13, v17, v15
 ; SDAG-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1)
-; SDAG-NEXT:    v_add3_u32 v2, v12, v16, v2
+; SDAG-NEXT:    v_add3_u32 v2, v13, v16, v2
 ; SDAG-NEXT:    global_store_b32 v[6:7], v2, off
 ; SDAG-NEXT:    s_set_pc_i64 s[30:31]
 ;
@@ -52,23 +52,23 @@ define void @interleaved_with_wave_barrier(ptr addrspace(1) %foo, ptr addrspace(
 ; GISEL-NEXT:    v_dual_mov_b32 v8, v3 :: v_dual_mov_b32 v9, v4
 ; GISEL-NEXT:    v_dual_mov_b32 v4, v5 :: v_dual_mov_b32 v5, v6
 ; GISEL-NEXT:    v_add_co_u32 v6, vcc_lo, v0, 0x54
-; GISEL-NEXT:    global_load_b32 v12, v[8:9], off offset:44
-; GISEL-NEXT:    global_load_b32 v13, v[0:1], off offset:4
+; GISEL-NEXT:    global_load_b32 v13, v[8:9], off offset:44
+; GISEL-NEXT:    global_load_b32 v14, v[0:1], off offset:4
 ; GISEL-NEXT:    v_add_nc_u32_e32 v3, 0x54, v2
 ; GISEL-NEXT:    v_add_co_ci_u32_e64 v7, null, 0, v1, vcc_lo
 ; GISEL-NEXT:    v_add_co_u32 v10, vcc_lo, v8, 0x58
-; GISEL-NEXT:    ; wave barrier
 ; GISEL-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GISEL-NEXT:    v_add_co_ci_u32_e64 v11, null, 0, v9, vcc_lo
-; GISEL-NEXT:    s_mov_b32 s0, 0x58
+; GISEL-NEXT:    v_add_nc_u32_e32 v12, 0x58, v2
+; GISEL-NEXT:    ; wave barrier
 ; GISEL-NEXT:    s_wait_loadcnt 0x0
-; GISEL-NEXT:    v_dual_add_nc_u32 v14, s0, v2 :: v_dual_add_nc_u32 v12, v13, v12
+; GISEL-NEXT:    v_add_nc_u32_e32 v13, v14, v13
 ; GISEL-NEXT:    global_load_async_to_lds_b32 v3, v[6:7], off offset:4 th:TH_LOAD_NT nv
 ; GISEL-NEXT:    ; wave barrier
 ; GISEL-NEXT:    ; asyncmark(stages=all)
 ; GISEL-NEXT:    global_load_b32 v15, v[0:1], off offset:8
 ; GISEL-NEXT:    ; wave barrier
-; GISEL-NEXT:    global_load_async_to_lds_b32 v14, v[10:11], off offset:4 th:TH_LOAD_LU nv
+; GISEL-NEXT:    global_load_async_to_lds_b32 v12, v[10:11], off offset:4 th:TH_LOAD_LU nv
 ; GISEL-NEXT:    ; wave barrier
 ; GISEL-NEXT:    global_load_b32 v16, v[8:9], off offset:48
 ; GISEL-NEXT:    ; asyncmark(stages=all)
@@ -79,10 +79,10 @@ define void @interleaved_with_wave_barrier(ptr addrspace(1) %foo, ptr addrspace(
 ; GISEL-NEXT:    s_wait_asynccnt 0x0
 ; GISEL-NEXT:    ds_load_b32 v2, v2 offset:88
 ; GISEL-NEXT:    s_wait_loadcnt_dscnt 0x101
-; GISEL-NEXT:    v_add3_u32 v12, v12, v17, v15
+; GISEL-NEXT:    v_add3_u32 v13, v13, v17, v15
 ; GISEL-NEXT:    s_wait_loadcnt_dscnt 0x0
 ; GISEL-NEXT:    s_delay_alu instid0(VALU_DEP_1)
-; GISEL-NEXT:    v_add3_u32 v2, v12, v16, v2
+; GISEL-NEXT:    v_add3_u32 v2, v13, v16, v2
 ; GISEL-NEXT:    global_store_b32 v[4:5], v2, off
 ; GISEL-NEXT:    s_set_pc_i64 s[30:31]
 entry:
@@ -143,16 +143,17 @@ define amdgpu_kernel void @test_pipelined_loop(ptr addrspace(1) %foo, ptr addrsp
 ; SDAG-NEXT:    s_clause 0x1
 ; SDAG-NEXT:    s_load_b96 s[0:2], s[4:5], 0x24 nv
 ; SDAG-NEXT:    s_load_b32 s3, s[4:5], 0x44 nv
-; SDAG-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 0
+; SDAG-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v2, 4
+; SDAG-NEXT:    v_mov_b32_e32 v1, 0
 ; SDAG-NEXT:    s_wait_kmcnt 0x0
 ; SDAG-NEXT:    s_add_co_i32 s6, s2, 4
-; SDAG-NEXT:    v_dual_mov_b32 v2, s2 :: v_dual_mov_b32 v3, 4
-; SDAG-NEXT:    v_mov_b32_e32 v4, s6
+; SDAG-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
+; SDAG-NEXT:    v_dual_mov_b32 v3, s2 :: v_dual_mov_b32 v4, s6
 ; SDAG-NEXT:    s_mov_b32 s6, 2
 ; SDAG-NEXT:    s_mov_b32 s7, s2
-; SDAG-NEXT:    global_load_async_to_lds_b32 v2, v0, s[0:1] offset:4 nv
+; SDAG-NEXT:    global_load_async_to_lds_b32 v3, v0, s[0:1] offset:4 nv
 ; SDAG-NEXT:    ; asyncmark(stages=all)
-; SDAG-NEXT:    global_load_async_to_lds_b32 v4, v3, s[0:1] offset:4 nv
+; SDAG-NEXT:    global_load_async_to_lds_b32 v4, v2, s[0:1] offset:4 nv
 ; SDAG-NEXT:    s_add_nc_u64 s[0:1], s[0:1], 8
 ; SDAG-NEXT:    ; asyncmark(stages=all)
 ; SDAG-NEXT:  .LBB1_1: ; %loop_body
@@ -197,17 +198,17 @@ define amdgpu_kernel void @test_pipelined_loop(ptr addrspace(1) %foo, ptr addrsp
 ; GISEL-NEXT:    s_clause 0x1
 ; GISEL-NEXT:    s_load_b96 s[0:2], s[4:5], 0x24 nv
 ; GISEL-NEXT:    s_load_b32 s3, s[4:5], 0x44 nv
-; GISEL-NEXT:    v_mov_b32_e32 v0, 0
+; GISEL-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 4
 ; GISEL-NEXT:    s_mov_b32 s7, 2
 ; GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GISEL-NEXT:    s_add_co_u32 s6, s2, 4
-; GISEL-NEXT:    v_dual_mov_b32 v1, s2 :: v_dual_mov_b32 v2, 4
-; GISEL-NEXT:    v_mov_b32_e32 v3, s6
+; GISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
+; GISEL-NEXT:    v_dual_mov_b32 v2, s2 :: v_dual_mov_b32 v3, s6
 ; GISEL-NEXT:    s_mov_b32 s6, 0
 ; GISEL-NEXT:    s_mov_b32 s8, s2
-; GISEL-NEXT:    global_load_async_to_lds_b32 v1, v0, s[0:1] offset:4 nv
+; GISEL-NEXT:    global_load_async_to_lds_b32 v2, v0, s[0:1] offset:4 nv
 ; GISEL-NEXT:    ; asyncmark(stages=all)
-; GISEL-NEXT:    global_load_async_to_lds_b32 v3, v2, s[0:1] offset:4 nv
+; GISEL-NEXT:    global_load_async_to_lds_b32 v3, v1, s[0:1] offset:4 nv
 ; GISEL-NEXT:    s_add_co_u32 s0, s0, 8
 ; GISEL-NEXT:    s_add_co_ci_u32 s1, s1, 0
 ; GISEL-NEXT:    ; asyncmark(stages=all)
@@ -331,14 +332,14 @@ define amdgpu_kernel void @test_pipelined_loop_with_global(ptr addrspace(1) %foo
 ; SDAG-NEXT:    global_load_b32 v2, v0, s[8:9] offset:4
 ; SDAG-NEXT:    global_load_b32 v3, v0, s[0:1] offset:4
 ; SDAG-NEXT:    global_load_async_to_lds_b32 v9, v5, s[8:9] offset:4 nv
+; SDAG-NEXT:    s_wait_kmcnt 0x0
+; SDAG-NEXT:    v_dual_mov_b32 v6, s6 :: v_dual_mov_b32 v7, s12
 ; SDAG-NEXT:    s_wait_xcnt 0x0
 ; SDAG-NEXT:    s_add_nc_u64 s[0:1], s[0:1], 8
 ; SDAG-NEXT:    s_mov_b32 s8, 2
 ; SDAG-NEXT:    s_mov_b32 s9, s10
-; SDAG-NEXT:    ; asyncmark(stages=all)
-; SDAG-NEXT:    s_wait_kmcnt 0x0
-; SDAG-NEXT:    v_dual_mov_b32 v6, s6 :: v_dual_mov_b32 v7, s12
 ; SDAG-NEXT:    s_mov_b64 s[6:7], s[2:3]
+; SDAG-NEXT:    ; asyncmark(stages=all)
 ; SDAG-NEXT:    s_wait_loadcnt 0x0
 ; SDAG-NEXT:    v_dual_mov_b32 v1, v2 :: v_dual_mov_b32 v4, v3
 ; SDAG-NEXT:  .LBB2_1: ; %loop_body
@@ -349,23 +350,23 @@ define amdgpu_kernel void @test_pipelined_loop_with_global(ptr addrspace(1) %foo
 ; SDAG-NEXT:    v_dual_mov_b32 v5, v4 :: v_dual_mov_b32 v9, s12
 ; SDAG-NEXT:    v_dual_mov_b32 v8, v1 :: v_dual_mov_b32 v10, s9
 ; SDAG-NEXT:    global_load_b32 v1, v0, s[4:5]
-; SDAG-NEXT:    v_dual_add_nc_u32 v11, v6, v7 :: v_dual_mov_b32 v7, v3
+; SDAG-NEXT:    v_dual_mov_b32 v7, v3 :: v_dual_add_nc_u32 v6, v6, v7
+; SDAG-NEXT:    s_add_co_i32 s8, s8, 1
+; SDAG-NEXT:    s_add_co_i32 s9, s9, 4
+; SDAG-NEXT:    s_cmp_lt_i32 s8, s11
 ; SDAG-NEXT:    global_load_async_to_lds_b32 v9, v0, s[4:5] offset:4 nv
 ; SDAG-NEXT:    global_load_b32 v4, v0, s[0:1]
 ; SDAG-NEXT:    ; asyncmark(stages=all)
 ; SDAG-NEXT:    ; wait_asyncmark(2, stages=all)
 ; SDAG-NEXT:    s_wait_asynccnt 0x2
 ; SDAG-NEXT:    ds_load_b32 v10, v10
-; SDAG-NEXT:    v_mov_b32_e32 v6, v2
-; SDAG-NEXT:    s_add_co_i32 s8, s8, 1
-; SDAG-NEXT:    s_add_co_i32 s9, s9, 4
-; SDAG-NEXT:    s_cmp_lt_i32 s8, s11
 ; SDAG-NEXT:    s_wait_xcnt 0x1
 ; SDAG-NEXT:    s_add_nc_u64 s[4:5], s[4:5], 4
 ; SDAG-NEXT:    s_wait_xcnt 0x0
 ; SDAG-NEXT:    s_add_nc_u64 s[0:1], s[0:1], 4
 ; SDAG-NEXT:    s_wait_dscnt 0x0
-; SDAG-NEXT:    v_add_nc_u32_e32 v10, v11, v10
+; SDAG-NEXT:    v_add_nc_u32_e32 v10, v6, v10
+; SDAG-NEXT:    v_mov_b32_e32 v6, v2
 ; SDAG-NEXT:    global_store_b32 v0, v10, s[6:7]
 ; SDAG-NEXT:    s_wait_xcnt 0x0
 ; SDAG-NEXT:    s_add_nc_u64 s[6:7], s[6:7], 4
@@ -379,11 +380,10 @@ define amdgpu_kernel void @test_pipelined_loop_with_global(ptr addrspace(1) %foo
 ; SDAG-NEXT:    v_dual_mov_b32 v0, s1 :: v_dual_add_nc_u32 v1, v1, v4
 ; SDAG-NEXT:    v_add_nc_u32_e32 v3, v8, v5
 ; SDAG-NEXT:    ds_load_b32 v2, v0
-; SDAG-NEXT:    v_mov_b32_e32 v5, s0
-; SDAG-NEXT:    s_add_co_i32 s0, s11, -1
 ; SDAG-NEXT:    s_wait_dscnt 0x0
-; SDAG-NEXT:    v_add_nc_u32_e32 v2, v3, v2
-; SDAG-NEXT:    global_store_b32 v5, v2, s[2:3] scale_offset
+; SDAG-NEXT:    v_dual_mov_b32 v3, s0 :: v_dual_add_nc_u32 v2, v3, v2
+; SDAG-NEXT:    s_add_co_i32 s0, s11, -1
+; SDAG-NEXT:    global_store_b32 v3, v2, s[2:3] scale_offset
 ; SDAG-NEXT:    ; wait_asyncmark(0, stages=all)
 ; SDAG-NEXT:    s_wait_asynccnt 0x0
 ; SDAG-NEXT:    ds_load_b32 v0, v0 offset:4
@@ -401,34 +401,33 @@ define amdgpu_kernel void @test_pipelined_loop_with_global(ptr addrspace(1) %foo
 ; GISEL-NEXT:    s_clause 0x1
 ; GISEL-NEXT:    s_load_b96 s[8:10], s[4:5], 0x24 nv
 ; GISEL-NEXT:    s_load_b128 s[0:3], s[4:5], 0x34 nv
-; GISEL-NEXT:    v_mov_b32_e32 v0, 0
+; GISEL-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, 4
 ; GISEL-NEXT:    s_load_b32 s11, s[4:5], 0x44 nv
 ; GISEL-NEXT:    s_mov_b32 s13, 2
 ; GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GISEL-NEXT:    s_load_b32 s12, s[8:9], 0x0
 ; GISEL-NEXT:    s_load_b32 s16, s[0:1], 0x0
-; GISEL-NEXT:    v_mov_b32_e32 v1, s10
 ; GISEL-NEXT:    s_add_co_u32 s6, s10, 4
 ; GISEL-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
-; GISEL-NEXT:    v_dual_mov_b32 v4, 4 :: v_dual_mov_b32 v5, s6
+; GISEL-NEXT:    v_dual_mov_b32 v2, s10 :: v_dual_mov_b32 v5, s6
 ; GISEL-NEXT:    s_add_co_u32 s6, s8, 8
-; GISEL-NEXT:    global_load_async_to_lds_b32 v1, v0, s[8:9] offset:4 nv
-; GISEL-NEXT:    ; asyncmark(stages=all)
-; GISEL-NEXT:    s_clause 0x1
-; GISEL-NEXT:    global_load_b32 v2, v0, s[8:9] offset:4
-; GISEL-NEXT:    global_load_b32 v3, v0, s[0:1] offset:4
-; GISEL-NEXT:    global_load_async_to_lds_b32 v5, v4, s[8:9] offset:4 nv
 ; GISEL-NEXT:    s_add_co_ci_u32 s7, s9, 0
-; GISEL-NEXT:    s_wait_xcnt 0x0
-; GISEL-NEXT:    s_add_co_u32 s0, s0, 8
 ; GISEL-NEXT:    s_mov_b32 s14, s10
 ; GISEL-NEXT:    s_mov_b64 s[4:5], s[2:3]
+; GISEL-NEXT:    global_load_async_to_lds_b32 v2, v0, s[8:9] offset:4 nv
+; GISEL-NEXT:    ; asyncmark(stages=all)
+; GISEL-NEXT:    s_clause 0x1
+; GISEL-NEXT:    global_load_b32 v3, v0, s[8:9] offset:4
+; GISEL-NEXT:    global_load_b32 v4, v0, s[0:1] offset:4
+; GISEL-NEXT:    global_load_async_to_lds_b32 v5, v1, s[8:9] offset:4 nv
+; GISEL-NEXT:    s_wait_xcnt 0x0
+; GISEL-NEXT:    s_add_co_u32 s0, s0, 8
 ; GISEL-NEXT:    s_add_co_ci_u32 s1, s1, 0
 ; GISEL-NEXT:    ; asyncmark(stages=all)
 ; GISEL-NEXT:    s_wait_loadcnt 0x1
-; GISEL-NEXT:    v_readfirstlane_b32 s8, v2
+; GISEL-NEXT:    v_readfirstlane_b32 s8, v3
 ; GISEL-NEXT:    s_wait_loadcnt 0x0
-; GISEL-NEXT:    v_readfirstlane_b32 s15, v3
+; GISEL-NEXT:    v_readfirstlane_b32 s15, v4
 ; GISEL-NEXT:    s_mov_b32 s9, s8
 ; GISEL-NEXT:    s_mov_b32 s17, s15
 ; GISEL-NEXT:  .LBB2_1: ; %loop_body
@@ -440,14 +439,14 @@ define amdgpu_kernel void @test_pipelined_loop_with_global(ptr addrspace(1) %foo
 ; GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GISEL-NEXT:    s_add_co_i32 s9, s12, s16
 ; GISEL-NEXT:    s_add_co_i32 s13, s13, 1
+; GISEL-NEXT:    s_mov_b32 s18, s17
+; GISEL-NEXT:    s_mov_b32 s12, s8
 ; GISEL-NEXT:    global_load_async_to_lds_b32 v1, v0, s[6:7] offset:4 nv
 ; GISEL-NEXT:    global_load_b32 v3, v0, s[0:1]
 ; GISEL-NEXT:    ; asyncmark(stages=all)
 ; GISEL-NEXT:    ; wait_asyncmark(2, stages=all)
 ; GISEL-NEXT:    s_wait_asynccnt 0x2
 ; GISEL-NEXT:    ds_load_b32 v4, v4
-; GISEL-NEXT:    s_mov_b32 s18, s17
-; GISEL-NEXT:    s_mov_b32 s12, s8
 ; GISEL-NEXT:    s_wait_dscnt 0x0
 ; GISEL-NEXT:    v_readfirstlane_b32 s16, v4
 ; GISEL-NEXT:    s_add_co_i32 s9, s9, s16

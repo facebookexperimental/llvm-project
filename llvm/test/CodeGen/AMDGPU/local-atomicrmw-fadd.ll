@@ -1416,11 +1416,11 @@ define half @local_atomic_fadd_ret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-SDAG-TRUE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-SDAG-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-SDAG-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-TRUE16-NEXT:    ds_load_b32 v2, v1
+; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_2)
 ; GFX13-SDAG-TRUE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
 ; GFX13-SDAG-TRUE16-NEXT:    v_and_b32_e32 v0, 24, v0
-; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13-SDAG-TRUE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-TRUE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-SDAG-TRUE16-NEXT:  .LBB8_1: ; %atomicrmw.start
 ; GFX13-SDAG-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -1457,11 +1457,11 @@ define half @local_atomic_fadd_ret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-SDAG-FAKE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-SDAG-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-SDAG-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-FAKE16-NEXT:    ds_load_b32 v2, v1
+; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_2)
 ; GFX13-SDAG-FAKE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
 ; GFX13-SDAG-FAKE16-NEXT:    v_and_b32_e32 v0, 24, v0
-; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13-SDAG-FAKE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-FAKE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-SDAG-FAKE16-NEXT:  .LBB8_1: ; %atomicrmw.start
 ; GFX13-SDAG-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -1498,11 +1498,12 @@ define half @local_atomic_fadd_ret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v3, v1
-; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e64 v2, v0, 0xffff
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v3, v1
 ; GFX13-GISEL-TRUE16-NEXT:  .LBB8_1: ; %atomicrmw.start
 ; GFX13-GISEL-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -1539,11 +1540,12 @@ define half @local_atomic_fadd_ret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v3, v1
-; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e64 v2, v0, 0xffff
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v3, v1
 ; GFX13-GISEL-FAKE16-NEXT:  .LBB8_1: ; %atomicrmw.start
 ; GFX13-GISEL-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -2078,14 +2080,14 @@ define half @local_atomic_fadd_ret_f16__offset(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-TRUE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-TRUE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-TRUE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-TRUE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-TRUE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-TRUE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-TRUE16-NEXT:    v_lshlrev_b32_e64 v2, v1, 0xffff
-; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-TRUE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-TRUE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-TRUE16-NEXT:  .LBB9_1: ; %atomicrmw.start
 ; GFX13-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -2121,14 +2123,14 @@ define half @local_atomic_fadd_ret_f16__offset(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-FAKE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-FAKE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-FAKE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-FAKE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-FAKE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-FAKE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-FAKE16-NEXT:    v_lshlrev_b32_e64 v2, v1, 0xffff
-; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-FAKE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-FAKE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-FAKE16-NEXT:  .LBB9_1: ; %atomicrmw.start
 ; GFX13-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -2595,21 +2597,20 @@ define void @local_atomic_fadd_noret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-SDAG-TRUE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-SDAG-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-SDAG-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-TRUE16-NEXT:    ds_load_b32 v2, v1
+; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_2)
 ; GFX13-SDAG-TRUE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
 ; GFX13-SDAG-TRUE16-NEXT:    v_and_b32_e32 v0, 24, v0
-; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13-SDAG-TRUE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-TRUE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-SDAG-TRUE16-NEXT:  .LBB10_1: ; %atomicrmw.start
 ; GFX13-SDAG-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-TRUE16-NEXT:    s_wait_dscnt 0x0
-; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-TRUE16-NEXT:    v_lshrrev_b32_e32 v4, v0, v2
-; GFX13-SDAG-TRUE16-NEXT:    v_add_f16_e32 v4.l, 4.0, v4.l
 ; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-SDAG-TRUE16-NEXT:    v_add_f16_e32 v4.l, 4.0, v4.l
 ; GFX13-SDAG-TRUE16-NEXT:    v_cvt_u32_u16_e32 v4, v4.l
+; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-TRUE16-NEXT:    v_lshlrev_b32_e32 v4, v0, v4
-; GFX13-SDAG-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-SDAG-TRUE16-NEXT:    v_and_or_b32 v4, v2, v3, v4
 ; GFX13-SDAG-TRUE16-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-SDAG-TRUE16-NEXT:    s_wait_storecnt 0x0
@@ -2635,21 +2636,20 @@ define void @local_atomic_fadd_noret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-SDAG-FAKE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-SDAG-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-SDAG-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-FAKE16-NEXT:    ds_load_b32 v2, v1
+; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_2)
 ; GFX13-SDAG-FAKE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
 ; GFX13-SDAG-FAKE16-NEXT:    v_and_b32_e32 v0, 24, v0
-; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13-SDAG-FAKE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-FAKE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-SDAG-FAKE16-NEXT:  .LBB10_1: ; %atomicrmw.start
 ; GFX13-SDAG-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-FAKE16-NEXT:    s_wait_dscnt 0x0
-; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-FAKE16-NEXT:    v_lshrrev_b32_e32 v4, v0, v2
-; GFX13-SDAG-FAKE16-NEXT:    v_add_f16_e32 v4, 4.0, v4
 ; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-SDAG-FAKE16-NEXT:    v_add_f16_e32 v4, 4.0, v4
 ; GFX13-SDAG-FAKE16-NEXT:    v_and_b32_e32 v4, 0xffff, v4
+; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-FAKE16-NEXT:    v_lshlrev_b32_e32 v4, v0, v4
-; GFX13-SDAG-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-SDAG-FAKE16-NEXT:    v_and_or_b32 v4, v2, v3, v4
 ; GFX13-SDAG-FAKE16-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-SDAG-FAKE16-NEXT:    s_wait_storecnt 0x0
@@ -2675,11 +2675,12 @@ define void @local_atomic_fadd_noret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v2, v1
-; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-GISEL-TRUE16-NEXT:  .LBB10_1: ; %atomicrmw.start
 ; GFX13-GISEL-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -2714,11 +2715,12 @@ define void @local_atomic_fadd_noret_f16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v2, v1
-; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-GISEL-FAKE16-NEXT:  .LBB10_1: ; %atomicrmw.start
 ; GFX13-GISEL-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -3235,14 +3237,14 @@ define void @local_atomic_fadd_noret_f16__offset(ptr addrspace(3) %ptr) nounwind
 ; GFX13-TRUE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-TRUE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-TRUE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-TRUE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-TRUE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-TRUE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-TRUE16-NEXT:    v_lshlrev_b32_e64 v3, v1, 0xffff
-; GFX13-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-TRUE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-TRUE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-TRUE16-NEXT:  .LBB11_1: ; %atomicrmw.start
 ; GFX13-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -3276,14 +3278,14 @@ define void @local_atomic_fadd_noret_f16__offset(ptr addrspace(3) %ptr) nounwind
 ; GFX13-FAKE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-FAKE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-FAKE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-FAKE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-FAKE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-FAKE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-FAKE16-NEXT:    v_lshlrev_b32_e64 v3, v1, 0xffff
-; GFX13-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-FAKE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-FAKE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-FAKE16-NEXT:  .LBB11_1: ; %atomicrmw.start
 ; GFX13-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -4489,11 +4491,11 @@ define bfloat @local_atomic_fadd_ret_bf16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-SDAG-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-NEXT:    ds_load_b32 v2, v1
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_2)
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v0, 24, v0
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13-SDAG-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-NEXT:    ds_load_b32 v2, v1
 ; GFX13-SDAG-NEXT:  .LBB14_1: ; %atomicrmw.start
 ; GFX13-SDAG-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-NEXT:    s_wait_dscnt 0x0
@@ -4530,11 +4532,12 @@ define bfloat @local_atomic_fadd_ret_bf16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v3, v1
-; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e64 v2, v0, 0xffff
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v3, v1
 ; GFX13-GISEL-TRUE16-NEXT:  .LBB14_1: ; %atomicrmw.start
 ; GFX13-GISEL-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -4571,11 +4574,12 @@ define bfloat @local_atomic_fadd_ret_bf16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v3, v1
-; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e64 v2, v0, 0xffff
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v3, v1
 ; GFX13-GISEL-FAKE16-NEXT:  .LBB14_1: ; %atomicrmw.start
 ; GFX13-GISEL-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -5108,14 +5112,14 @@ define bfloat @local_atomic_fadd_ret_bf16__offset(ptr addrspace(3) %ptr) nounwin
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-SDAG-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-SDAG-NEXT:    ds_load_b32 v3, v0
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e64 v2, v1, 0xffff
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-SDAG-NEXT:    ds_load_b32 v3, v0
 ; GFX13-SDAG-NEXT:  .LBB15_1: ; %atomicrmw.start
 ; GFX13-SDAG-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-NEXT:    s_wait_dscnt 0x0
@@ -5151,14 +5155,14 @@ define bfloat @local_atomic_fadd_ret_bf16__offset(ptr addrspace(3) %ptr) nounwin
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-TRUE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e64 v2, v1, 0xffff
-; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-GISEL-TRUE16-NEXT:  .LBB15_1: ; %atomicrmw.start
 ; GFX13-GISEL-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -5194,14 +5198,14 @@ define bfloat @local_atomic_fadd_ret_bf16__offset(ptr addrspace(3) %ptr) nounwin
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-FAKE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e64 v2, v1, 0xffff
-; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_not_b32_e32 v2, v2
+; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v3, v0
 ; GFX13-GISEL-FAKE16-NEXT:  .LBB15_1: ; %atomicrmw.start
 ; GFX13-GISEL-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -5752,21 +5756,20 @@ define void @local_atomic_fadd_noret_bf16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-SDAG-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-NEXT:    ds_load_b32 v2, v1
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_2)
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v0, 24, v0
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_2)
 ; GFX13-SDAG-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-NEXT:    ds_load_b32 v2, v1
 ; GFX13-SDAG-NEXT:  .LBB16_1: ; %atomicrmw.start
 ; GFX13-SDAG-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-NEXT:    s_wait_dscnt 0x0
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_lshrrev_b32_e32 v4, v0, v2
-; GFX13-SDAG-NEXT:    v_pk_add_bf16 v4, v4, 4.0 op_sel:[0,1] op_sel_hi:[1,0]
 ; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-SDAG-NEXT:    v_pk_add_bf16 v4, v4, 4.0 op_sel:[0,1] op_sel_hi:[1,0]
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v4, 0xffff, v4
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e32 v4, v0, v4
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_and_or_b32 v4, v2, v3, v4
 ; GFX13-SDAG-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-SDAG-NEXT:    s_wait_storecnt 0x0
@@ -5792,11 +5795,12 @@ define void @local_atomic_fadd_noret_bf16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v2, v1
-; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-GISEL-TRUE16-NEXT:  .LBB16_1: ; %atomicrmw.start
 ; GFX13-GISEL-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -5831,11 +5835,12 @@ define void @local_atomic_fadd_noret_bf16(ptr addrspace(3) %ptr) nounwind {
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v1, -4, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v2, v1
-; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v0, 3, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e64 v3, v0, 0xffff
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v2, v1
 ; GFX13-GISEL-FAKE16-NEXT:  .LBB16_1: ; %atomicrmw.start
 ; GFX13-GISEL-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_dscnt 0x0
@@ -6352,14 +6357,14 @@ define void @local_atomic_fadd_noret_bf16__offset(ptr addrspace(3) %ptr) nounwin
 ; GFX13-SDAG-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-SDAG-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-SDAG-NEXT:    s_mov_b32 s0, 0
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-SDAG-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-SDAG-NEXT:    ds_load_b32 v2, v0
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_lshlrev_b32_e64 v3, v1, 0xffff
-; GFX13-SDAG-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-SDAG-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-SDAG-NEXT:    ds_load_b32 v2, v0
 ; GFX13-SDAG-NEXT:  .LBB17_1: ; %atomicrmw.start
 ; GFX13-SDAG-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-SDAG-NEXT:    s_wait_dscnt 0x0
@@ -6393,14 +6398,14 @@ define void @local_atomic_fadd_noret_bf16__offset(ptr addrspace(3) %ptr) nounwin
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-TRUE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-GISEL-TRUE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-GISEL-TRUE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_lshlrev_b32_e64 v3, v1, 0xffff
-; GFX13-GISEL-TRUE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-TRUE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-GISEL-TRUE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-GISEL-TRUE16-NEXT:  .LBB17_1: ; %atomicrmw.start
 ; GFX13-GISEL-TRUE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-TRUE16-NEXT:    s_wait_dscnt 0x0
@@ -6434,14 +6439,14 @@ define void @local_atomic_fadd_noret_bf16__offset(ptr addrspace(3) %ptr) nounwin
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-GISEL-FAKE16-NEXT:    v_add_nc_u32_e32 v1, 0xfffe, v0
 ; GFX13-GISEL-FAKE16-NEXT:    s_mov_b32 s0, 0
-; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_3) | instid1(VALU_DEP_1)
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(SKIP_1) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v0, -4, v1
 ; GFX13-GISEL-FAKE16-NEXT:    v_and_b32_e32 v1, 3, v1
-; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e32 v1, 3, v1
+; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instskip(NEXT) | instid1(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_lshlrev_b32_e64 v3, v1, 0xffff
-; GFX13-GISEL-FAKE16-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX13-GISEL-FAKE16-NEXT:    v_not_b32_e32 v3, v3
+; GFX13-GISEL-FAKE16-NEXT:    ds_load_b32 v2, v0
 ; GFX13-GISEL-FAKE16-NEXT:  .LBB17_1: ; %atomicrmw.start
 ; GFX13-GISEL-FAKE16-NEXT:    ; =>This Inner Loop Header: Depth=1
 ; GFX13-GISEL-FAKE16-NEXT:    s_wait_dscnt 0x0

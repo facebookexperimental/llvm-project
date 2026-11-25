@@ -35,7 +35,9 @@ define amdgpu_ps i32 @s_or_b32_disjoint_live_scc(i32 inreg %n) {
 ; CHECK:       ; %bb.0: ; %entry
 ; CHECK-NEXT:    s_lshl_b32 s0, s0, 31
 ; CHECK-NEXT:    s_or_b32 s0, s0, 0x800
-; CHECK-NEXT:    s_cselect_b32 s0, 0, 1
+; CHECK-NEXT:    s_cselect_b64 s[0:1], 0, -1
+; CHECK-NEXT:    s_and_b64 s[0:1], s[0:1], exec
+; CHECK-NEXT:    s_cselect_b32 s0, 1, 0
 ; CHECK-NEXT:    ; return to shader part epilog
 entry:
   br i1 true, label %tail, label %dead

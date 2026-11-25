@@ -6,13 +6,12 @@
 
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
-load("@fbsource//tools/build_defs:fb_native_wrapper.bzl", "fb_native")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 # Mapping from every tool to the cc_library that implements the tool's entrypoint.
 _TOOLS = {
-    "clang": "//clang:clang-driver",
     "clang-scan-deps": "//clang:clang-scan-deps-lib",
+    "clang": "//clang:clang-driver",
     "dsymutil": "//llvm:dsymutil-lib",
     "lld": "//lld:lld-lib",
     "llvm-ar": "//llvm:llvm-ar-lib",
@@ -54,12 +53,10 @@ _EXTRA_ALIASES = {
 def _validated_string_list_flag_impl(ctx):
     invalid_values = [v for v in ctx.build_setting_value if v not in ctx.attr.values]
     if invalid_values:
-        fail(
-            "Tool(s) [{}] are not in the known list of tools: {}".format(
-                ", ".join(invalid_values),
-                ", ".join(ctx.attr.values),
-            )
-        )
+        fail("Tool(s) [{}] are not in the known list of tools: {}".format(
+            ", ".join(invalid_values),
+            ", ".join(ctx.attr.values),
+        ))
     return BuildSettingInfo(value = ctx.build_setting_value)
 
 # Like string_list_flag, but with the validation that string_flag provides.
@@ -101,7 +98,7 @@ def generate_driver_selects(name):
     )
     driver_tool_deps = []
     for tool, target in _TOOLS.items():
-        fb_native.config_setting(
+        native.config_setting(
             name = "{}-include-{}".format(name, tool),
             flag_values = {name: tool},
         )
@@ -154,7 +151,11 @@ See tools/llvm-driver/CMakeLists.txt for the reference implementation.""",
     },
 )
 
-def llvm_driver_cc_binary(name, needs_posix_utility_signal_handling = False, deps = None, **kwargs):
+def llvm_driver_cc_binary(
+        name,
+        needs_posix_utility_signal_handling = False,
+        deps = None,
+        **kwargs):
     """cc_binary wrapper for binaries using the llvm-driver template."""
     init_llvm_args = ""
     if needs_posix_utility_signal_handling:
@@ -164,10 +165,15 @@ def llvm_driver_cc_binary(name, needs_posix_utility_signal_handling = False, dep
         name = "_gen_" + name,
         out = name + "-driver.cpp",
         substitutions = {
-            "@INITLLVM_ARGS@": init_llvm_args,
             "@TOOL_NAME@": name.replace("-", "_"),
+            "@INITLLVM_ARGS@": init_llvm_args,
         },
         template = "//llvm:cmake/modules/llvm-driver-template.cpp.in",
     )
     deps = deps or []
-    cc_binary(name = name, srcs = [name + "-driver.cpp"], deps = deps + ["//llvm:Support"], **kwargs)
+    cc_binary(
+        name = name,
+        srcs = [name + "-driver.cpp"],
+        deps = deps + ["//llvm:Support"],
+        **kwargs
+    )

@@ -153,12 +153,11 @@ define amdgpu_kernel void @ptr_s_buffer_load_i32(ptr addrspace(1) %out, ptr addr
 ; GFX1250-GISEL-NEXT:    s_load_b32 s8, s[4:5], 0x20 nv
 ; GFX1250-GISEL-NEXT:    s_load_b128 s[0:3], s[4:5], 0x10 nv
 ; GFX1250-GISEL-NEXT:    s_load_b64 s[6:7], s[4:5], 0x0 nv
-; GFX1250-GISEL-NEXT:    v_mov_b32_e32 v1, 0
 ; GFX1250-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-GISEL-NEXT:    s_buffer_load_b32 s0, s[0:3], s8 offset:0x0 nv
 ; GFX1250-GISEL-NEXT:    s_wait_kmcnt 0x0
-; GFX1250-GISEL-NEXT:    v_mov_b32_e32 v0, s0
-; GFX1250-GISEL-NEXT:    global_store_b32 v1, v0, s[6:7]
+; GFX1250-GISEL-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, s0
+; GFX1250-GISEL-NEXT:    global_store_b32 v0, v1, s[6:7]
 ; GFX1250-GISEL-NEXT:    s_endpgm
   %load = call i32 @llvm.amdgcn.ptr.s.buffer.load.i32(ptr addrspace(8) %rsrc, i32 %offset, i32 0), !invariant.load !0
   store i32 %load, ptr addrspace(1) %out
@@ -636,12 +635,11 @@ define amdgpu_kernel void @ptr_s_buffer_load_i32_imm_offset(ptr addrspace(1) %ou
 ; GFX1250-GISEL-NEXT:    s_clause 0x1
 ; GFX1250-GISEL-NEXT:    s_load_b128 s[0:3], s[4:5], 0x10 nv
 ; GFX1250-GISEL-NEXT:    s_load_b64 s[6:7], s[4:5], 0x0 nv
-; GFX1250-GISEL-NEXT:    v_mov_b32_e32 v1, 0
 ; GFX1250-GISEL-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-GISEL-NEXT:    s_buffer_load_b32 s0, s[0:3], 0x10 nv
 ; GFX1250-GISEL-NEXT:    s_wait_kmcnt 0x0
-; GFX1250-GISEL-NEXT:    v_mov_b32_e32 v0, s0
-; GFX1250-GISEL-NEXT:    global_store_b32 v1, v0, s[6:7]
+; GFX1250-GISEL-NEXT:    v_dual_mov_b32 v0, 0 :: v_dual_mov_b32 v1, s0
+; GFX1250-GISEL-NEXT:    global_store_b32 v0, v1, s[6:7]
 ; GFX1250-GISEL-NEXT:    s_endpgm
   %load = call i32 @llvm.amdgcn.ptr.s.buffer.load.i32(ptr addrspace(8) %rsrc, i32 16, i32 0), !invariant.load !0
   store i32 %load, ptr addrspace(1) %out

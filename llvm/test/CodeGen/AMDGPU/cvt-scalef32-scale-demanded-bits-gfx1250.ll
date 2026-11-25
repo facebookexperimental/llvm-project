@@ -144,10 +144,11 @@ define <2 x i32> @exponent_mask_vector_multi_use_store(<8 x bfloat> %a, <8 x bfl
 ; GFX1250-NEXT:    global_load_b64 v[8:9], v[8:9], off
 ; GFX1250-NEXT:    s_wait_loadcnt 0x0
 ; GFX1250-NEXT:    v_and_b32_e32 v14, 0x7f800000, v8
-; GFX1250-NEXT:    v_and_b32_e32 v15, 0x7f800000, v9
-; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_2) | instskip(NEXT) | instid1(VALU_DEP_1)
+; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX1250-NEXT:    v_cvt_scalef32_pk8_fp4_bf16 v12, v[0:3], v14
-; GFX1250-NEXT:    v_mov_b32_e32 v0, v12
+; GFX1250-NEXT:    s_mov_b32 s0, 0x7f800000
+; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_1) | instid1(SALU_CYCLE_1)
+; GFX1250-NEXT:    v_dual_mov_b32 v0, v12 :: v_dual_bitop2_b32 v15, s0, v9 bitop3:0x40
 ; GFX1250-NEXT:    v_cvt_scalef32_pk8_fp4_bf16 v1, v[4:7], v14
 ; GFX1250-NEXT:    global_store_b64 v[10:11], v[14:15], off
 ; GFX1250-NEXT:    s_set_pc_i64 s[30:31]

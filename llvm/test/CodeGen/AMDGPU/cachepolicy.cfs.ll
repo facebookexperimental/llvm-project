@@ -364,10 +364,9 @@ define amdgpu_kernel void @vbuffer_atomic_rtn_CFS128B(ptr addrspace(1) %out, <4 
 ; GFX13-NEXT:    buffer_atomic_add_u32 v1, v2, s[8:11], s3 offen th:TH_ATOMIC_RETURN cfs:CFS_128B
 ; GFX13-NEXT:  .LBB18_2:
 ; GFX13-NEXT:    s_or_b32 exec_lo, exec_lo, s0
-; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_add_nc_u32 v0, s2, v0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-NEXT:    global_store_b32 v1, v0, s[0:1] scope:SCOPE_SYS
@@ -398,10 +397,9 @@ define amdgpu_kernel void @vbuffer_atomic_rtn_CFS64B(ptr addrspace(1) %out, <4 x
 ; GFX13-NEXT:    buffer_atomic_add_u32 v1, v2, s[8:11], s3 offen th:TH_ATOMIC_RETURN cfs:CFS_64B
 ; GFX13-NEXT:  .LBB19_2:
 ; GFX13-NEXT:    s_or_b32 exec_lo, exec_lo, s0
-; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_add_nc_u32 v0, s2, v0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-NEXT:    global_store_b32 v1, v0, s[0:1] scope:SCOPE_SYS
@@ -432,10 +430,9 @@ define amdgpu_kernel void @vbuffer_atomic_rtn_CFS32B(ptr addrspace(1) %out, <4 x
 ; GFX13-NEXT:    buffer_atomic_add_u32 v1, v2, s[8:11], s3 offen th:TH_ATOMIC_RETURN cfs:CFS_32B
 ; GFX13-NEXT:  .LBB20_2:
 ; GFX13-NEXT:    s_or_b32 exec_lo, exec_lo, s0
-; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-NEXT:    v_readfirstlane_b32 s2, v1
-; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_1)
+; GFX13-NEXT:    s_load_b64 s[0:1], s[4:5], 0x24 nv
 ; GFX13-NEXT:    v_dual_mov_b32 v1, 0 :: v_dual_add_nc_u32 v0, s2, v0
 ; GFX13-NEXT:    s_wait_kmcnt 0x0
 ; GFX13-NEXT:    global_store_b32 v1, v0, s[0:1] scope:SCOPE_SYS

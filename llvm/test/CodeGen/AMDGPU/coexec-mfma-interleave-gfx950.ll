@@ -10,17 +10,17 @@ declare <4 x float> @llvm.amdgcn.mfma.f32.16x16x32.f16(<8 x half>, <8 x half>, <
 define amdgpu_kernel void @mfma_16x16_interleave(
 ; CHECK-LABEL: mfma_16x16_interleave:
 ; CHECK:       ; %bb.0:
-; CHECK-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; CHECK-NEXT:    v_and_b32_e32 v0, 0x3ff, v0
+; CHECK-NEXT:    v_lshlrev_b32_e32 v28, 4, v0
 ; CHECK-NEXT:    v_mov_b32_e32 v29, 0
-; CHECK-NEXT:    v_and_b32_e32 v12, 0x3ff, v0
+; CHECK-NEXT:    v_mul_hi_i32_i24_e32 v13, -12, v0
+; CHECK-NEXT:    v_mul_i32_i24_e32 v12, -12, v0
+; CHECK-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
 ; CHECK-NEXT:    s_load_dwordx8 s[8:15], s[4:5], 0x8
-; CHECK-NEXT:    v_lshlrev_b32_e32 v28, 4, v12
 ; CHECK-NEXT:    s_waitcnt lgkmcnt(0)
 ; CHECK-NEXT:    global_load_dwordx4 v[0:3], v28, s[0:1]
 ; CHECK-NEXT:    global_load_dwordx4 v[4:7], v28, s[0:1] offset:16
 ; CHECK-NEXT:    global_load_dwordx4 v[8:11], v28, s[0:1] offset:32
-; CHECK-NEXT:    v_mul_hi_i32_i24_e32 v13, -12, v12
-; CHECK-NEXT:    v_mul_i32_i24_e32 v12, -12, v12
 ; CHECK-NEXT:    v_lshl_add_u64 v[14:15], s[0:1], 0, v[28:29]
 ; CHECK-NEXT:    v_lshl_add_u64 v[16:17], v[14:15], 0, v[12:13]
 ; CHECK-NEXT:    global_load_dwordx2 v[30:31], v[16:17], off offset:16

@@ -1643,8 +1643,8 @@ define amdgpu_kernel void @global_atomic_fadd_f64_noret_pat(ptr addrspace(1) %pt
 ; GFX1250-NEXT:    s_cbranch_execz .LBB36_2
 ; GFX1250-NEXT:  ; %bb.1:
 ; GFX1250-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
-; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    v_mov_b32_e32 v2, 0
+; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-NEXT:    global_atomic_add_f64 v2, v[0:1], s[2:3] scope:SCOPE_SYS
 ; GFX1250-NEXT:    s_wait_storecnt 0x0
@@ -1728,8 +1728,8 @@ define amdgpu_kernel void @global_atomic_fadd_f64_noret_pat_agent(ptr addrspace(
 ; GFX1250-NEXT:    s_cbranch_execz .LBB37_2
 ; GFX1250-NEXT:  ; %bb.1:
 ; GFX1250-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
-; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    v_mov_b32_e32 v2, 0
+; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-NEXT:    global_atomic_add_f64 v2, v[0:1], s[2:3] scope:SCOPE_DEV
 ; GFX1250-NEXT:    s_wait_storecnt 0x0
@@ -1815,8 +1815,8 @@ define amdgpu_kernel void @global_atomic_fadd_f64_noret_pat_system(ptr addrspace
 ; GFX1250-NEXT:    s_cbranch_execz .LBB38_2
 ; GFX1250-NEXT:  ; %bb.1:
 ; GFX1250-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
-; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    v_mov_b32_e32 v2, 0
+; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-NEXT:    global_atomic_add_f64 v2, v[0:1], s[2:3] scope:SCOPE_SYS
 ; GFX1250-NEXT:    s_wait_storecnt 0x0
@@ -1900,8 +1900,8 @@ define amdgpu_kernel void @global_atomic_fadd_f64_noret_pat_flush(ptr addrspace(
 ; GFX1250-NEXT:    s_cbranch_execz .LBB39_2
 ; GFX1250-NEXT:  ; %bb.1:
 ; GFX1250-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
-; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    v_mov_b32_e32 v2, 0
+; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-NEXT:    global_atomic_add_f64 v2, v[0:1], s[2:3] scope:SCOPE_DEV
 ; GFX1250-NEXT:    s_wait_storecnt 0x0
@@ -2105,8 +2105,8 @@ define amdgpu_kernel void @global_atomic_fadd_f64_noret_pat_agent_safe(ptr addrs
 ; GFX1250-NEXT:    s_cbranch_execz .LBB43_2
 ; GFX1250-NEXT:  ; %bb.1:
 ; GFX1250-NEXT:    s_load_b64 s[2:3], s[4:5], 0x24 nv
-; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    v_mov_b32_e32 v2, 0
+; GFX1250-NEXT:    v_mov_b64_e32 v[0:1], s[0:1]
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
 ; GFX1250-NEXT:    global_atomic_add_f64 v2, v[0:1], s[2:3] scope:SCOPE_DEV
 ; GFX1250-NEXT:    s_wait_storecnt 0x0

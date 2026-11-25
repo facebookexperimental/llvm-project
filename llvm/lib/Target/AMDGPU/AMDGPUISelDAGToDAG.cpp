@@ -356,6 +356,49 @@ bool AMDGPUDAGToDAGISel::matchLoadD16FromBuildVector(SDNode *N) const {
   return false;
 }
 
+bool AMDGPUDAGToDAGISel::preprocessZeroExtend(SDNode *N) const {
+  // This is special case for zext from setcc if it can be
+  // selected to SALU. The pattern will be directly selected to `s_cselect`,
+  // to avoid an intermediate i1 virtual register which will be interpreted as a
+  // lane mask.
+  if (N->isDivergent())
+    return false;
+
+  EVT ResType = N->getValueType(0);
+  if (ResType != MVT::i32 && ResType != MVT::i64)
+    return false;
+
+  SDValue CondNode = N->getOperand(0);
+  if (CondNode->getOpcode() != ISD::SETCC)
+    return false;
+
+  // TODO: To support the operand type is int64 if s_cmp_i64 is supported on
+  // TODO: Support i64 if s_cmp_i64 is available
+  if (CondNode->getOperand(0).getValueType() != MVT::i32)
+    return false;
+
+  SDLoc DL(N);
+  SDValue TrueValue = CurDAG->getTargetConstant(1, DL, MVT::i32);
+  SDValue FalseValue = CurDAG->getTargetConstant(0, DL, MVT::i32);
+
+  SDValue Chain = CurDAG->getEntryNode(); // Basic chain to anchor the copy
+  SDValue CopyToSCC =
+      CurDAG->getCopyToReg(Chain, DL, AMDGPU::SCC, CondNode, SDValue());
+  SDValue Ops[4] = {
+      TrueValue, FalseValue,
+      CurDAG->getRegister(AMDGPU::SCC, MVT::i1), // Explicitly state SCC is read
+      CopyToSCC.getValue(1)                      // Glue
+  };
+
+  unsigned SelectCode =
+      ResType == MVT::i32 ? AMDGPU::S_CSELECT_B32 : AMDGPU::S_CSELECT_B64;
+  MachineSDNode *CSelectNode =
+      CurDAG->getMachineNode(SelectCode, DL, CurDAG->getVTList(ResType), Ops);
+  CurDAG->ReplaceAllUsesOfValueWith(SDValue(N, 0), SDValue(CSelectNode, 0));
+
+  return true;
+}
+
 bool AMDGPUDAGToDAGISel::widenRegionLoad16(SDNode *N) const {
   auto *Mem = cast<MemSDNode>(N);
   EVT VT = N->getValueType(0);
@@ -403,6 +446,11 @@ void AMDGPUDAGToDAGISel::PreprocessISelDAG() {
       if (Subtarget->useRealTrue16Insts())
         MadeChange |= widenRegionLoad16(N);
       break;
+    case ISD::ZERO_EXTEND: {
+      // TODO: To support sext and any_ext.
+      MadeChange |= preprocessZeroExtend(N);
+      break;
+    }
     default:
       break;
     }

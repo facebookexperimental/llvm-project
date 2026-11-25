@@ -348,8 +348,8 @@ define amdgpu_kernel void @test_clmul_i32(ptr addrspace(1) %out, ptr addrspace(1
 ; GFX1250-NEXT:    s_mov_b64 s[64:65], 0
 ; GFX1250-NEXT:    v_nop
 ; GFX1250-NEXT:    global_prefetch_b8 v0, s[64:65] scope:SCOPE_SE
-; GFX1250-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX1250-NEXT:    v_and_b32_e32 v0, 0x3ff, v0
+; GFX1250-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX1250-NEXT:    v_lshlrev_b32_e32 v0, 2, v0
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
@@ -368,8 +368,9 @@ define amdgpu_kernel void @test_clmul_i32(ptr addrspace(1) %out, ptr addrspace(1
 ; GFX1250-NEXT:    v_and_b32_e32 v8, 0x88888888, v0
 ; GFX1250-NEXT:    v_mul_lo_u32 v9, v3, v2
 ; GFX1250-NEXT:    v_mul_lo_u32 v13, v3, v6
-; GFX1250-NEXT:    v_mul_lo_u32 v15, v7, v2
+; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_4)
 ; GFX1250-NEXT:    v_mul_lo_u32 v14, v5, v1
+; GFX1250-NEXT:    v_mul_lo_u32 v15, v7, v2
 ; GFX1250-NEXT:    v_mul_lo_u32 v16, v5, v6
 ; GFX1250-NEXT:    v_mul_lo_u32 v17, v7, v1
 ; GFX1250-NEXT:    v_mul_lo_u32 v10, v5, v4
@@ -1587,8 +1588,8 @@ define amdgpu_kernel void @test_clmulr_i32(ptr addrspace(1) %out, ptr addrspace(
 ; GFX1250-NEXT:    s_mov_b64 s[64:65], 0
 ; GFX1250-NEXT:    v_nop
 ; GFX1250-NEXT:    global_prefetch_b8 v0, s[64:65] scope:SCOPE_SE
-; GFX1250-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX1250-NEXT:    v_and_b32_e32 v0, 0x3ff, v0
+; GFX1250-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX1250-NEXT:    v_lshlrev_b32_e32 v32, 2, v0
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0
@@ -2622,8 +2623,8 @@ define amdgpu_kernel void @test_clmulh_i32(ptr addrspace(1) %out, ptr addrspace(
 ; GFX1250-NEXT:    s_mov_b64 s[64:65], 0
 ; GFX1250-NEXT:    v_nop
 ; GFX1250-NEXT:    global_prefetch_b8 v0, s[64:65] scope:SCOPE_SE
-; GFX1250-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX1250-NEXT:    v_and_b32_e32 v0, 0x3ff, v0
+; GFX1250-NEXT:    s_load_b128 s[0:3], s[4:5], 0x24 nv
 ; GFX1250-NEXT:    s_delay_alu instid0(VALU_DEP_1)
 ; GFX1250-NEXT:    v_lshlrev_b32_e32 v26, 2, v0
 ; GFX1250-NEXT:    s_wait_kmcnt 0x0

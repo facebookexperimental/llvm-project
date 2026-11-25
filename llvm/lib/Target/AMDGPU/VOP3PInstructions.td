@@ -1801,7 +1801,7 @@ class VOP3PWMMA_Profile<list<ValueType> ArgTy, bit _IsSWMMAC, int _IndexType,
                                          !eq(ArgTy[1], v48i32), !eq(ArgTy[1], v64i32)));
 
   bit IsC_F64 = !eq(ArgTy[3], v8f64);
-  bit IsC_F32 = !or(!eq(ArgTy[3], v8f32), !eq(ArgTy[3], v4f32));
+  bit IsC_F32 = !or(!eq(ArgTy[3], v16f32), !eq(ArgTy[3], v8f32), !eq(ArgTy[3], v4f32));
   bit IsC_BF16 = !or(!eq(ArgTy[3], v8i16), !eq(ArgTy[3], v4i16),
                      !eq(ArgTy[3], v8bf16), !eq(ArgTy[3], v4bf16));
   bit IsC_F16 = !or(!eq(ArgTy[3], v8f16), !eq(ArgTy[3], v4f16));
@@ -2024,7 +2024,8 @@ class VOP3PWMMA_Profile<list<ValueType> ArgTy, bit _IsSWMMAC, int _IndexType,
 def WMMAInstInfoTable : GenericTable {
   let FilterClass = "WMMAInstInfo";
   let CppTypeName = "WMMAInstInfo";
-  let Fields = ["Opcode", "is_wmma_xdl", "HasMatrixScale", "CoExecVariant"];
+  let Fields = ["Opcode", "is_wmma_xdl", "is_vavdst_ordered_xdl", "HasMatrixScale",
+                "CoExecVariant"];
 
   let PrimaryKey = ["Opcode"];
   let PrimaryKeyName = "getWMMAInstInfoHelper";
@@ -2033,6 +2034,7 @@ def WMMAInstInfoTable : GenericTable {
 class WMMAInstInfo<VOP3PWMMA_Profile WMMAProfile> {
   Instruction Opcode = !cast<Instruction>(NAME);
   bit is_wmma_xdl = 0;
+  bit is_vavdst_ordered_xdl = 0;
   bit HasMatrixScale = WMMAProfile.HasMatrixScale;
   code CoExecVariant = WMMAProfile.CoExecVariant;
 }
@@ -2041,6 +2043,8 @@ multiclass WMMAInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string Pse
 
   defvar WMMAConstraints2Addr = !if(DiffVdstSrc2, "@earlyclobber $vdst", "@earlyclobber $vdst,$vdst = $src2");
   defvar WMMAConstraints3Addr = "@earlyclobber $vdst";
+  defvar IsVAVDSTOrderedXDL = !and(!or(WMMAProfile.IsC_F32, WMMAProfile.IsIU),
+                                   !not(!or(WMMAProfile.IsAB_F64, WMMAProfile.IsAB_F32)));
 
   let Mnemonic = Instr, mayRaiseFPException = 0, ReadsModeReg = 0, isConvergent = 1, SubtargetPredicate = HasWMMA128bInsts in {
     let Constraints = WMMAConstraints2Addr, isConvertibleToThreeAddress = 1 in
@@ -2048,6 +2052,7 @@ multiclass WMMAInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string Pse
         let PseudoInstr = Instr#PseudoInstrSuffix;
         let FixedSize = WMMAProfile.HasMatrixScale;
         let Size = !if(WMMAProfile.HasMatrixScale, 16, 8);
+        let is_vavdst_ordered_xdl = !and(is_wmma_xdl, IsVAVDSTOrderedXDL);
       }
 
     let Constraints = WMMAConstraints3Addr, SchedRW = [Write32Bit, Write32Bit] in
@@ -2055,6 +2060,7 @@ multiclass WMMAInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string Pse
         let PseudoInstr = Instr#PseudoInstrSuffix;
         let FixedSize = WMMAProfile.HasMatrixScale;
         let Size = !if(WMMAProfile.HasMatrixScale, 16, 8);
+        let is_vavdst_ordered_xdl = !and(is_wmma_xdl, IsVAVDSTOrderedXDL);
       }
 
   }
@@ -2071,6 +2077,10 @@ multiclass SWMMACInstGFX12<string Instr, VOP3PWMMA_Profile WMMAProfile, string P
     let AsmMatchConverter = "cvtSWMMAC";
     let isConvergent = 1;
     let Constraints = "@earlyclobber $vdst,$vdst = $srcTiedDef";
+    let is_vavdst_ordered_xdl =
+        !and(is_wmma_xdl,
+             !or(WMMAProfile.IsC_F32, WMMAProfile.IsIU),
+             !not(!or(WMMAProfile.IsAB_F64, WMMAProfile.IsAB_F32)));
   }
 }
 

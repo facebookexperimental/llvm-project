@@ -180,14 +180,16 @@ define amdgpu_kernel void @fptrunc_f64_to_f16(ptr addrspace(1) %out, double %in)
 ; SI-NEXT:    s_waitcnt lgkmcnt(0)
 ; SI-NEXT:    s_mov_b32 s4, s0
 ; SI-NEXT:    s_lshr_b32 s0, s3, 8
+; SI-NEXT:    s_and_b32 s8, s0, 0xffe
+; SI-NEXT:    s_and_b32 s0, s3, 0x1ff
+; SI-NEXT:    s_or_b32 s0, s0, s2
 ; SI-NEXT:    s_mov_b32 s5, s1
-; SI-NEXT:    s_and_b32 s0, s0, 0xffe
-; SI-NEXT:    s_and_b32 s1, s3, 0x1ff
-; SI-NEXT:    s_or_b32 s1, s1, s2
-; SI-NEXT:    s_cselect_b32 s1, 1, 0
+; SI-NEXT:    s_cselect_b64 s[0:1], -1, 0
+; SI-NEXT:    s_and_b64 s[0:1], s[0:1], exec
+; SI-NEXT:    s_cselect_b32 s0, 1, 0
 ; SI-NEXT:    s_bfe_u32 s2, s3, 0xb0014
+; SI-NEXT:    s_or_b32 s0, s8, s0
 ; SI-NEXT:    s_sub_i32 s8, 0x3f1, s2
-; SI-NEXT:    s_or_b32 s0, s0, s1
 ; SI-NEXT:    v_med3_i32 v0, s8, 0, 13
 ; SI-NEXT:    s_or_b32 s1, s0, 0x1000
 ; SI-NEXT:    v_readfirstlane_b32 s8, v0
@@ -231,14 +233,16 @@ define amdgpu_kernel void @fptrunc_f64_to_f16(ptr addrspace(1) %out, double %in)
 ; VI-SDAG-NEXT:    s_waitcnt lgkmcnt(0)
 ; VI-SDAG-NEXT:    s_mov_b32 s0, s4
 ; VI-SDAG-NEXT:    s_lshr_b32 s4, s7, 8
+; VI-SDAG-NEXT:    s_and_b32 s8, s4, 0xffe
+; VI-SDAG-NEXT:    s_and_b32 s4, s7, 0x1ff
+; VI-SDAG-NEXT:    s_or_b32 s4, s4, s6
 ; VI-SDAG-NEXT:    s_mov_b32 s1, s5
-; VI-SDAG-NEXT:    s_and_b32 s4, s4, 0xffe
-; VI-SDAG-NEXT:    s_and_b32 s5, s7, 0x1ff
-; VI-SDAG-NEXT:    s_or_b32 s5, s5, s6
-; VI-SDAG-NEXT:    s_cselect_b32 s5, 1, 0
+; VI-SDAG-NEXT:    s_cselect_b64 s[4:5], -1, 0
+; VI-SDAG-NEXT:    s_and_b64 s[4:5], s[4:5], exec
+; VI-SDAG-NEXT:    s_cselect_b32 s4, 1, 0
 ; VI-SDAG-NEXT:    s_bfe_u32 s6, s7, 0xb0014
+; VI-SDAG-NEXT:    s_or_b32 s4, s8, s4
 ; VI-SDAG-NEXT:    s_sub_i32 s8, 0x3f1, s6
-; VI-SDAG-NEXT:    s_or_b32 s4, s4, s5
 ; VI-SDAG-NEXT:    v_med3_i32 v0, s8, 0, 13
 ; VI-SDAG-NEXT:    s_or_b32 s5, s4, 0x1000
 ; VI-SDAG-NEXT:    v_readfirstlane_b32 s8, v0
@@ -333,6 +337,8 @@ define amdgpu_kernel void @fptrunc_f64_to_f16(ptr addrspace(1) %out, double %in)
 ; GFX10-SDAG-NEXT:    s_and_b32 s5, s3, 0x1ff
 ; GFX10-SDAG-NEXT:    s_and_b32 s4, s4, 0xffe
 ; GFX10-SDAG-NEXT:    s_or_b32 s2, s5, s2
+; GFX10-SDAG-NEXT:    s_cselect_b32 s2, -1, 0
+; GFX10-SDAG-NEXT:    s_and_b32 s2, s2, exec_lo
 ; GFX10-SDAG-NEXT:    s_cselect_b32 s2, 1, 0
 ; GFX10-SDAG-NEXT:    s_bfe_u32 s5, s3, 0xb0014
 ; GFX10-SDAG-NEXT:    s_or_b32 s2, s4, s2
@@ -433,6 +439,9 @@ define amdgpu_kernel void @fptrunc_f64_to_f16(ptr addrspace(1) %out, double %in)
 ; GFX11-SDAG-NEXT:    s_and_b32 s5, s3, 0x1ff
 ; GFX11-SDAG-NEXT:    s_and_b32 s4, s4, 0xffe
 ; GFX11-SDAG-NEXT:    s_or_b32 s2, s5, s2
+; GFX11-SDAG-NEXT:    s_cselect_b32 s2, -1, 0
+; GFX11-SDAG-NEXT:    s_delay_alu instid0(SALU_CYCLE_1)
+; GFX11-SDAG-NEXT:    s_and_b32 s2, s2, exec_lo
 ; GFX11-SDAG-NEXT:    s_cselect_b32 s2, 1, 0
 ; GFX11-SDAG-NEXT:    s_bfe_u32 s5, s3, 0xb0014
 ; GFX11-SDAG-NEXT:    s_or_b32 s2, s4, s2

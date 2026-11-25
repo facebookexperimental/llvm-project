@@ -15766,6 +15766,8 @@ define void @freeze_i1_scc(i32 inreg %a, i32 inreg %b, ptr addrspace(1) %ptrb) {
 ; GFX6-SDAG:       ; %bb.0:
 ; GFX6-SDAG-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX6-SDAG-NEXT:    s_cmp_eq_u32 s16, s17
+; GFX6-SDAG-NEXT:    s_cselect_b64 s[8:9], -1, 0
+; GFX6-SDAG-NEXT:    s_and_b64 s[8:9], s[8:9], exec
 ; GFX6-SDAG-NEXT:    s_mov_b32 s6, 0
 ; GFX6-SDAG-NEXT:    s_cselect_b32 s8, 1, 0
 ; GFX6-SDAG-NEXT:    s_mov_b32 s7, 0xf000
@@ -15796,6 +15798,8 @@ define void @freeze_i1_scc(i32 inreg %a, i32 inreg %b, ptr addrspace(1) %ptrb) {
 ; GFX7-SDAG:       ; %bb.0:
 ; GFX7-SDAG-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX7-SDAG-NEXT:    s_cmp_eq_u32 s16, s17
+; GFX7-SDAG-NEXT:    s_cselect_b64 s[8:9], -1, 0
+; GFX7-SDAG-NEXT:    s_and_b64 s[8:9], s[8:9], exec
 ; GFX7-SDAG-NEXT:    s_mov_b32 s6, 0
 ; GFX7-SDAG-NEXT:    s_cselect_b32 s8, 1, 0
 ; GFX7-SDAG-NEXT:    s_mov_b32 s7, 0xf000
@@ -15826,6 +15830,8 @@ define void @freeze_i1_scc(i32 inreg %a, i32 inreg %b, ptr addrspace(1) %ptrb) {
 ; GFX8-GFX803-SDAG:       ; %bb.0:
 ; GFX8-GFX803-SDAG-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX8-GFX803-SDAG-NEXT:    s_cmp_eq_u32 s16, s17
+; GFX8-GFX803-SDAG-NEXT:    s_cselect_b64 s[4:5], -1, 0
+; GFX8-GFX803-SDAG-NEXT:    s_and_b64 s[4:5], s[4:5], exec
 ; GFX8-GFX803-SDAG-NEXT:    s_cselect_b32 s4, 1, 0
 ; GFX8-GFX803-SDAG-NEXT:    v_mov_b32_e32 v2, s4
 ; GFX8-GFX803-SDAG-NEXT:    flat_store_byte v[0:1], v2
@@ -15849,6 +15855,8 @@ define void @freeze_i1_scc(i32 inreg %a, i32 inreg %b, ptr addrspace(1) %ptrb) {
 ; GFX8-GFX900-SDAG:       ; %bb.0:
 ; GFX8-GFX900-SDAG-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX8-GFX900-SDAG-NEXT:    s_cmp_eq_u32 s16, s17
+; GFX8-GFX900-SDAG-NEXT:    s_cselect_b64 s[4:5], -1, 0
+; GFX8-GFX900-SDAG-NEXT:    s_and_b64 s[4:5], s[4:5], exec
 ; GFX8-GFX900-SDAG-NEXT:    s_cselect_b32 s4, 1, 0
 ; GFX8-GFX900-SDAG-NEXT:    v_mov_b32_e32 v2, s4
 ; GFX8-GFX900-SDAG-NEXT:    global_store_byte v[0:1], v2, off
@@ -15872,6 +15880,8 @@ define void @freeze_i1_scc(i32 inreg %a, i32 inreg %b, ptr addrspace(1) %ptrb) {
 ; GFX10-SDAG:       ; %bb.0:
 ; GFX10-SDAG-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX10-SDAG-NEXT:    s_cmp_eq_u32 s16, s17
+; GFX10-SDAG-NEXT:    s_cselect_b32 s4, -1, 0
+; GFX10-SDAG-NEXT:    s_and_b32 s4, s4, exec_lo
 ; GFX10-SDAG-NEXT:    s_cselect_b32 s4, 1, 0
 ; GFX10-SDAG-NEXT:    v_mov_b32_e32 v2, s4
 ; GFX10-SDAG-NEXT:    global_store_byte v[0:1], v2, off
@@ -15893,6 +15903,8 @@ define void @freeze_i1_scc(i32 inreg %a, i32 inreg %b, ptr addrspace(1) %ptrb) {
 ; GFX11-SDAG:       ; %bb.0:
 ; GFX11-SDAG-NEXT:    s_waitcnt vmcnt(0) expcnt(0) lgkmcnt(0)
 ; GFX11-SDAG-NEXT:    s_cmp_eq_u32 s0, s1
+; GFX11-SDAG-NEXT:    s_cselect_b32 s0, -1, 0
+; GFX11-SDAG-NEXT:    s_and_b32 s0, s0, exec_lo
 ; GFX11-SDAG-NEXT:    s_cselect_b32 s0, 1, 0
 ; GFX11-SDAG-NEXT:    v_mov_b32_e32 v2, s0
 ; GFX11-SDAG-NEXT:    global_store_b8 v[0:1], v2, off
