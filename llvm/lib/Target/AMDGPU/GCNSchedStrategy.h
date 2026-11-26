@@ -15,6 +15,7 @@
 
 #include "GCNRegPressure.h"
 #include "GCNRematStrategy.h"
+#include "LIRP.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineBlockFrequencyInfo.h"
@@ -35,6 +36,7 @@ class SIMachineFunctionInfo;
 class SIRegisterInfo;
 class GCNSubtarget;
 class GCNSchedStage;
+class MachineRegisterInfo;
 
 enum class GCNSchedStageID : unsigned {
   OccInitialSchedule = 0,
@@ -77,8 +79,9 @@ protected:
   /// invisible to scheduling heuristics. However, in certain scenarios (such as
   /// avoiding register spilling), it may be beneficial to consider scheduling
   /// these not-yet-ready instructions.
-  bool tryPendingCandidate(SchedCandidate &Cand, SchedCandidate &TryCand,
-                           SchedBoundary *Zone) const;
+  virtual bool tryPendingCandidate(SchedCandidate &Cand,
+                                   SchedCandidate &TryCand,
+                                   SchedBoundary *Zone) const;
 
   void printCandidateDecision(const SchedCandidate &Current,
                               const SchedCandidate &Preferred);
@@ -89,7 +92,6 @@ protected:
                             const GCNDownwardRPTrackerBase &DownwardTracker,
                             const GCNUpwardRPTracker &UpwardTracker,
                             ScheduleDAGMI *DAG, const SIRegisterInfo *SRI);
-
   std::vector<unsigned> Pressure;
 
   std::vector<unsigned> MaxPressure;
@@ -109,6 +111,9 @@ protected:
 
   // GCN RP Tracker for botttom-up scheduling
   mutable GCNUpwardRPTracker UpwardTracker;
+
+  // Live interval-based RP tracker.
+  LIRPTracker LIRP;
 
   bool UseGCNTrackers = false;
 
@@ -182,6 +187,16 @@ public:
   GCNDownwardRPTrackerBase &getDownwardTracker() { return DownwardTracker; }
 
   GCNUpwardRPTracker &getUpwardTracker() { return UpwardTracker; }
+
+  /// \returns the LIRP tracker.
+  LIRPTracker *getLIRPTracker() { return &LIRP; }
+
+  // Index of the region currently being scheduled.
+  void setCurrentRegionIdx(unsigned Idx) { CurrentRegionIdx = Idx; }
+  unsigned getCurrentRegionIdx() const { return CurrentRegionIdx; }
+
+private:
+  unsigned CurrentRegionIdx = 0;
 };
 
 /// The goal of this scheduling strategy is to maximize kernel occupancy (i.e.
@@ -635,7 +650,7 @@ public:
 
 // Live interval register pressure stage:
 // estimates register pressure accounting for live interval interference,
-// optionally reschedules the region with tigher register bounds.
+// optionally reschedules the region with tighter register bounds.
 class LiveIntervalRPStage : public GCNSchedStage {
 public:
   bool initGCNSchedStage() override;

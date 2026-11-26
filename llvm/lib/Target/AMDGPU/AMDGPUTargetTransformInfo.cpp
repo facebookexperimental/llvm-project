@@ -117,8 +117,10 @@ void AMDGPUTTIImpl::getUnrollingPreferences(
   const Function &F = *L->getHeader()->getParent();
   UP.Threshold = static_cast<unsigned>(
       F.getFnAttributeAsParsedInteger("amdgpu-unroll-threshold", 300));
-  UP.PartialThreshold = static_cast<unsigned>(
-      F.getFnAttributeAsParsedInteger("amdgpu-partial-unroll-threshold", 150));
+  // Default to a reduced PartialThreshold to limit code-size growth from
+  // runtime unrolling. The attribute still overrides this.
+  UP.PartialThreshold = static_cast<unsigned>(F.getFnAttributeAsParsedInteger(
+      "amdgpu-partial-unroll-threshold", UP.Threshold / 4));
   UP.MaxCount = std::numeric_limits<unsigned>::max();
   UP.Partial = true;
 

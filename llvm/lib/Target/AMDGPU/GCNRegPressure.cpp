@@ -836,8 +836,9 @@ Printable llvm::reportMismatch(const GCNRPTracker::LiveRegSet &LISLR,
   });
 }
 
-GCNRegPressure GCNDownwardRPTrackerBase::bumpDownwardPressure(
-    const MachineInstr *MI, const SIRegisterInfo *TRI) const {
+void GCNDownwardRPTrackerBase::forEachDownwardTransition(
+    const MachineInstr *MI, const SIRegisterInfo *TRI,
+    function_ref<void(Register, LaneBitmask, LaneBitmask)> Cb) const {
   assert(!MI->isDebugOrPseudoInstr() && "Expect a nondebug instruction.");
 
   SlotIndex SlotIdx;
@@ -859,7 +860,6 @@ GCNRegPressure GCNDownwardRPTrackerBase::bumpDownwardPressure(
   RegisterOperands RegOpers;
   RegOpers.collect(*MI, *TRI, *MRI, true, /*IgnoreDead=*/false);
   RegOpers.adjustLaneLiveness(LIS, *MRI, SlotIdx);
-  GCNRegPressure TempPressure = CurPressure;
   // Tracks the live mask reported by the use loop for redefined registers.
   SmallDenseMap<Register, LaneBitmask, 8> PostUseMask;
 
@@ -884,7 +884,7 @@ GCNRegPressure GCNDownwardRPTrackerBase::bumpDownwardPressure(
     LaneBitmask LiveMask = It != LiveRegs.end() ? It->second : LaneBitmask(0);
     LaneBitmask NewMask = LiveMask & ~LastUseMask;
     PostUseMask[Reg] = NewMask;
-    TempPressure.inc(Reg, LiveMask, NewMask, *MRI);
+    Cb(Reg, LiveMask, NewMask);
   }
 
   // Generate liveness for defs.
@@ -902,9 +902,18 @@ GCNRegPressure GCNDownwardRPTrackerBase::bumpDownwardPressure(
     }
 
     LaneBitmask NewMask = LiveMask | Def.LaneMask;
-    TempPressure.inc(Reg, LiveMask, NewMask, *MRI);
+    Cb(Reg, LiveMask, NewMask);
   }
+}
 
+GCNRegPressure GCNDownwardRPTrackerBase::bumpDownwardPressure(
+    const MachineInstr *MI, const SIRegisterInfo *TRI) const {
+  GCNRegPressure TempPressure = CurPressure;
+  forEachDownwardTransition(MI, TRI,
+                            [&](Register Reg, LaneBitmask PrevMask,
+                                LaneBitmask NewMask) {
+                              TempPressure.inc(Reg, PrevMask, NewMask, *MRI);
+                            });
   return TempPressure;
 }
 

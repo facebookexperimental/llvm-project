@@ -285,9 +285,9 @@ define amdgpu_ps <4 x float> @load_2darraymsaa_tfe(i32 inreg %rsrc, ptr addrspac
 ; GFX13-NEXT:    s_delay_alu instid0(VALU_DEP_3) | instskip(NEXT) | instid1(VALU_DEP_3)
 ; GFX13-NEXT:    v_dual_mov_b32 v2, v11 :: v_dual_mov_b32 v3, v12
 ; GFX13-NEXT:    v_mov_b32_e32 v4, v13
-; GFX13-NEXT:    image_load v[0:4], [v8, v7, v6, v5], rsrcidx(s0) dmask:0xf dim:SQ_RSRC_IMG_2D_MSAA_ARRAY tfe
 ; GFX13-NEXT:    s_mov_b32 s3, s2
 ; GFX13-NEXT:    s_mov_b32 s2, s1
+; GFX13-NEXT:    image_load v[0:4], [v8, v7, v6, v5], rsrcidx(s0) dmask:0xf dim:SQ_RSRC_IMG_2D_MSAA_ARRAY tfe
 ; GFX13-NEXT:    s_wait_loadcnt 0x0
 ; GFX13-NEXT:    global_store_b32 v9, v4, s[2:3]
 ; GFX13-NEXT:    ; return to shader part epilog
